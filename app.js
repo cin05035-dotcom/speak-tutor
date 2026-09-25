@@ -126,50 +126,6 @@ async function gemini(key, body) {
   throw apiError(status);
 }
 
-async function coach(card, heard) {
-  const data = await gemini(saved('gemini', ''), {
-    systemInstruction: { parts: [{ text:
-      `You are ${TUTOR}, a friendly 27-year-old American from Chicago, coaching a Korean learner in their 20s who reads English well but struggles to speak.
-The learner answered your line in a short role-play. Their answer comes from speech recognition, so ignore spelling, punctuation and capitalization, and never comment on pronunciation.
-Judge only whether the answer makes sense as a reply, sounds natural to an American, and fits the situation and politeness level.
-Do not invent problems: if it is natural, say so and keep "better" identical to the answer.
-Write "why" in Korean (해요체), at most two short sentences, speaking as ${TUTOR}. Write "better" in English.` }] },
-    contents: [{ role: 'user', parts: [{ text: JSON.stringify({
-      situation: card.when, category: CATS[card.cat], politeness: card.tone,
-      targetPattern: card.pattern, tutorLine: card.roleplay.tutor, learnerAnswer: heard,
-    }) }] }],
-    generationConfig: {
-      responseMimeType: 'application/json',
-      responseSchema: { type: 'OBJECT', required: ['verdict', 'better', 'why'], properties: {
-        verdict: { type: 'STRING', enum: Object.keys(VERDICT) },
-        better: { type: 'STRING' },
-        why: { type: 'STRING' },
-      } },
-    },
-  });
-  return JSON.parse(data.candidates[0].content.parts[0].text);
-}
-
-let coachRun = 0;
-async function showCoach(card, heard, out) {
-  const run = ++coachRun;
-  const box = document.createElement('div');
-  box.className = 'coach';
-  box.innerHTML = `<p class="who">${TUTOR}의 코멘트</p><p class="why">읽는 중…</p>`;
-  out.append(box);
-  let html;
-  try {
-    const r = await coach(card, heard);
-    const [cls, label] = VERDICT[r.verdict] || VERDICT.ok;
-    html = `<p class="who">${TUTOR}의 코멘트</p><p class="verdict ${cls}">${label}</p>
-      ${r.verdict === 'natural' ? '' : `<p class="en" lang="en">${esc(r.better)}</p>`}
-      <p class="why">${esc(r.why)}</p>`;
-  } catch (msg) {
-    html = `<p class="note">${esc(typeof msg === 'string' ? msg : 'AI 교정 결과를 읽지 못했어요. 다시 대답해보세요.')}</p>`;
-  }
-  if (run === coachRun) box.innerHTML = html;
-}
-
 const caption = (heard) => `<div class="cc"><span>상대에게 들린 말</span><p lang="en">${esc(heard)}</p></div>`;
 
 const words = (ws) => ws.map((w) => `<b>${esc(w)}</b>`).join(', ');
@@ -298,7 +254,7 @@ function settings() {
   $('#app').innerHTML = `
     <header class="bar"><a href="#" class="back">← 목록</a></header>
     <h1 class="page-h">AI 교정</h1>
-    <p>대화에 써보기에서 내 대답을 ${TUTOR}가 읽고, 더 자연스러운 표현과 이유를 알려줘요. Google Gemini 무료 API 키가 필요해요.</p>
+    <p>카드의 "대화에 써보기"에서 ${TUTOR}와 여러 번 이어서 대화하며 더 자연스러운 표현을 배우고, "이 말 영어로?"도 쓸 수 있어요. Google Gemini 무료 API 키가 필요해요.</p>
     <section class="step">
       <label class="label" for="key">Gemini API 키</label>
       <p class="hint" id="state">${key ? `저장된 키: ${esc(key.slice(0, 4))}…${esc(key.slice(-4))}` : '저장된 키가 없어요.'}</p>
@@ -320,7 +276,7 @@ function settings() {
       await gemini(k, { contents: [{ parts: [{ text: 'Reply with OK.' }] }] });
       save('gemini', k);
       settings();
-      $('#msg').textContent = '저장했어요. 이제 대화에 써보기에서 AI 교정이 나와요.';
+      $('#msg').textContent = `저장했어요. 이제 카드의 "대화에 써보기"에서 ${TUTOR}와 이어서 대화할 수 있어요.`;
     } catch (e) { msg.textContent = e; }
   };
   const del = $('#del');
@@ -371,7 +327,7 @@ function card(c) {
           </details>
         </div>`).join('')}
       </section>
-      <section class="step">
+      <section class="step" id="talk">
         <h2><span>3</span>대화에 써보기</h2>
         <p class="hint">${TUTOR}의 말을 듣고, 이 패턴으로 대답해보세요.</p>
         <div class="tutor">
@@ -426,10 +382,9 @@ function card(c) {
   $('#rp-mic').onclick = async () => {
     const out = $('#rp-out');
     const heard = await mic($('#rp-mic'), out, (h) => roleplayResult(c, h));
-    if (!heard) return;
-    if (saved('gemini', '')) showCoach(c, heard, out);
-    else out.insertAdjacentHTML('beforeend', '<p class="hint small"><a href="#/settings">AI 교정</a>을 켜면 더 자연스러운 표현도 알려줘요.</p>');
+    if (heard) out.insertAdjacentHTML('beforeend', `<p class="hint small"><a href="#/settings">AI 교정</a>을 켜면 ${TUTOR}와 여러 번 이어서 대화하고 교정도 받을 수 있어요.</p>`);
   };
+  if (saved('gemini', '')) startChat(c, $('#talk')); // 키가 있으면 한 번 주고받기 대신 이어지는 대화 (chat.js)
   $('#finish').onclick = () => {
     learned(c);
     if (todayPlan().picks.includes(c.id)) { location.hash = ''; return; } // 오늘의 학습에서 왔으면 목록으로
