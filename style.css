@@ -109,6 +109,19 @@ a { color: inherit; }
 .why, .note { font-size: 0.9rem; margin: 4px 0 0; }
 .note { color: var(--bad); margin-top: 10px; }
 
+/* 목록 상단 설정 링크, 설정 화면, AI 코멘트 */
+.top { position: relative; }
+.set { position: absolute; top: 0; right: 0; font-size: 0.82rem; font-weight: 600; color: var(--muted); padding: 6px 0; }
+.page-h { font: 800 1.6rem/1.2 var(--ko); margin: 0 0 8px; }
+.label { font-weight: 700; display: block; }
+#key {
+  width: 100%; min-height: 48px; padding: 0 12px; margin-top: 4px; border-radius: 12px;
+  border: 1.5px solid var(--line); background: var(--bg); color: var(--ink); font: 500 16px var(--mono);
+}
+.small { font-size: 0.82rem; }
+.coach { border-left: 4px solid var(--ink); padding: 2px 0 2px 12px; margin-top: 14px; }
+.coach .en { margin-top: 6px; }
+
 .tutor { border: 1.5px solid var(--line); border-radius: 14px; padding: 12px 14px; }
 .who { margin: 0; font-weight: 800; font-family: var(--en); }
 details { margin-top: 12px; }

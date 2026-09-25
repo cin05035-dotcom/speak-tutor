@@ -50,9 +50,83 @@ async function mic(btn, out, render) {
   speechSynthesis.cancel();
   const label = btn.textContent;
   btn.classList.add('live'); btn.textContent = '듣는 중… 다 말했으면 탭';
-  try { out.innerHTML = render(await hear()); }
+  let heard = '';
+  try { heard = await hear(); out.innerHTML = render(heard); }
   catch (err) { out.innerHTML = `<p class="note">${ERR[err] || '음성 인식에 실패했어요 (' + esc(String(err)) + ')'}</p>`; }
   finally { btn.classList.remove('live'); btn.textContent = label.startsWith('다시') ? label : '다시 ' + label; }
+  return heard;
+}
+
+// ── AI 교정 (Gemini 무료 등급, 키는 이 폰의 브라우저에만 저장) ──
+const MODEL = 'gemini-3.8-flash';
+const API = 'https://generativelanguage.googleapis.com/v1beta/models';
+const VERDICT = {
+  natural: ['ok', '자연스러워요'],
+  ok: ['ok', '통해요. 더 자연스러운 표현도 있어요'],
+  awkward: ['bad', '어색하게 들려요'],
+  wrong: ['bad', '뜻이 다르게 전달돼요'],
+};
+const apiError = (status) => ({
+  400: '키가 올바르지 않아요. 설정에서 키를 다시 확인하세요.',
+  403: '이 키로는 Gemini를 쓸 수 없어요. 설정에서 키를 다시 확인하세요.',
+  429: '무료 사용량을 잠시 넘었어요. 1분쯤 뒤에 다시 대답해보세요.',
+}[status] || (status ? `AI 교정을 불러오지 못했어요 (오류 ${status}).` : '인터넷 연결을 확인하세요.'));
+
+async function gemini(key, body) {
+  let res;
+  try {
+    res = await fetch(`${API}/${MODEL}:generateContent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+      body: JSON.stringify(body),
+    });
+  } catch { throw apiError(0); }
+  if (!res.ok) throw apiError(res.status);
+  return res.json();
+}
+
+async function coach(card, heard) {
+  const data = await gemini(saved('gemini', ''), {
+    systemInstruction: { parts: [{ text:
+      `You are ${TUTOR}, a friendly 27-year-old American from Chicago, coaching a Korean learner in their 20s who reads English well but struggles to speak.
+The learner answered your line in a short role-play. Their answer comes from speech recognition, so ignore spelling, punctuation and capitalization, and never comment on pronunciation.
+Judge only whether the answer makes sense as a reply, sounds natural to an American, and fits the situation and politeness level.
+Do not invent problems: if it is natural, say so and keep "better" identical to the answer.
+Write "why" in Korean (해요체), at most two short sentences, speaking as ${TUTOR}. Write "better" in English.` }] },
+    contents: [{ role: 'user', parts: [{ text: JSON.stringify({
+      situation: card.when, category: CATS[card.cat], politeness: card.tone,
+      targetPattern: card.pattern, tutorLine: card.roleplay.tutor, learnerAnswer: heard,
+    }) }] }],
+    generationConfig: {
+      responseMimeType: 'application/json',
+      responseSchema: { type: 'OBJECT', required: ['verdict', 'better', 'why'], properties: {
+        verdict: { type: 'STRING', enum: Object.keys(VERDICT) },
+        better: { type: 'STRING' },
+        why: { type: 'STRING' },
+      } },
+    },
+  });
+  return JSON.parse(data.candidates[0].content.parts[0].text);
+}
+
+let coachRun = 0;
+async function showCoach(card, heard, out) {
+  const run = ++coachRun;
+  const box = document.createElement('div');
+  box.className = 'coach';
+  box.innerHTML = `<p class="who">${TUTOR}의 코멘트</p><p class="why">읽는 중…</p>`;
+  out.append(box);
+  let html;
+  try {
+    const r = await coach(card, heard);
+    const [cls, label] = VERDICT[r.verdict] || VERDICT.ok;
+    html = `<p class="who">${TUTOR}의 코멘트</p><p class="verdict ${cls}">${label}</p>
+      ${r.verdict === 'natural' ? '' : `<p class="en">${esc(r.better)}</p>`}
+      <p class="why">${esc(r.why)}</p>`;
+  } catch (msg) {
+    html = `<p class="note">${esc(typeof msg === 'string' ? msg : 'AI 교정 결과를 읽지 못했어요. 다시 대답해보세요.')}</p>`;
+  }
+  if (run === coachRun) box.innerHTML = html;
 }
 
 const caption = (heard) => `<div class="cc"><span>상대에게 들린 말</span><p>${esc(heard)}</p></div>`;
@@ -88,6 +162,7 @@ function home() {
   const n = cards.filter((c) => done.has(c.id)).length;
   $('#app').innerHTML = `
     <header class="top">
+      <a class="set" href="#/settings">AI 교정 ${saved('gemini', '') ? '켜짐' : '꺼짐'}</a>
       <h1>말해보는 영어</h1>
       <p>표현 하나를 골라 소리 내어 말해보세요. 상대가 알아들었는지 바로 알려줘요.</p>
     </header>
@@ -103,6 +178,40 @@ function home() {
       </a></li>`).join('')}
     </ul>`;
   $('#app').querySelectorAll('[data-tab]').forEach((b) => b.onclick = () => { save('tab', b.dataset.tab); home(); });
+}
+
+function settings() {
+  const key = saved('gemini', '');
+  $('#app').innerHTML = `
+    <header class="bar"><a href="#" class="back">← 목록</a></header>
+    <h1 class="page-h">AI 교정</h1>
+    <p>대화에 써보기에서 내 대답을 ${TUTOR}가 읽고, 더 자연스러운 표현과 이유를 알려줘요. Google Gemini 무료 API 키가 필요해요.</p>
+    <section class="step">
+      <label class="label" for="key">Gemini API 키</label>
+      <p class="hint" id="state">${key ? `저장된 키: ${esc(key.slice(0, 4))}…${esc(key.slice(-4))}` : '저장된 키가 없어요.'}</p>
+      <input id="key" name="gemini-key" type="password" autocomplete="off" spellcheck="false" placeholder="AIza로 시작하는 키 붙여넣기…">
+      <div class="row">
+        <button class="btn" id="save">키 확인하고 저장</button>
+        ${key ? '<button class="btn ghost" id="del">키 삭제</button>' : ''}
+      </div>
+      <p class="why" id="msg" aria-live="polite"></p>
+    </section>
+    <p class="hint small">키는 이 폰의 브라우저에만 저장되고 Google 외에는 보내지 않아요. 무료 등급에서는 입력한 문장이 Google 서비스 개선에 쓰일 수 있으니 개인정보는 말하지 마세요.</p>
+    <p><a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener">Google AI Studio에서 키 발급하기 ↗</a></p>`;
+  $('#save').onclick = async () => {
+    const k = $('#key').value.trim();
+    const msg = $('#msg');
+    if (!k) { msg.textContent = '키를 붙여넣은 뒤 눌러주세요.'; return; }
+    msg.textContent = '키 확인 중…';
+    try {
+      await gemini(k, { contents: [{ parts: [{ text: 'Reply with OK.' }] }] });
+      save('gemini', k);
+      settings();
+      $('#msg').textContent = '저장했어요. 이제 대화에 써보기에서 AI 교정이 나와요.';
+    } catch (e) { msg.textContent = e; }
+  };
+  const del = $('#del');
+  if (del) del.onclick = () => { try { localStorage.removeItem('gemini'); } catch { /* 무시 */ } settings(); };
 }
 
 function card(c) {
@@ -159,7 +268,13 @@ function card(c) {
     b.onclick = () => mic(b, $('#out-' + b.dataset.mic), (heard) => variantResult(v.en, heard));
   });
   $('#rp-say').onclick = () => say(c.roleplay.tutor);
-  $('#rp-mic').onclick = () => mic($('#rp-mic'), $('#rp-out'), (heard) => roleplayResult(c, heard));
+  $('#rp-mic').onclick = async () => {
+    const out = $('#rp-out');
+    const heard = await mic($('#rp-mic'), out, (h) => roleplayResult(c, h));
+    if (!heard) return;
+    if (saved('gemini', '')) showCoach(c, heard, out);
+    else out.insertAdjacentHTML('beforeend', '<p class="hint small"><a href="#/settings">AI 교정</a>을 켜면 더 자연스러운 표현도 알려줘요.</p>');
+  };
   $('#finish').onclick = () => {
     save('done', [...new Set([...saved('done', []), c.id])]);
     const same = CARDS.filter((x) => x.cat === c.cat);
@@ -173,7 +288,9 @@ function route() {
   if ('speechSynthesis' in window) speechSynthesis.cancel();
   const m = location.hash.match(/^#\/c\/(.+)$/);
   const c = m && CARDS.find((x) => x.id === m[1]);
-  c ? card(c) : home();
+  if (c) card(c);
+  else if (location.hash === '#/settings') settings();
+  else home();
   window.scrollTo(0, 0);
 }
 window.addEventListener('hashchange', route);
