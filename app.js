@@ -204,7 +204,7 @@ function linkBlock(l) {
   if (!l) return '<p class="hint small">이 문장의 연음 표시는 아직 준비 중이에요.</p>';
   const marked = esc(l.text).replace(/‿/g, '<span class="tie">‿</span>').replace(/\(t\)/g, '<span class="hold">(t)</span>');
   return `<p class="link">${marked}</p><p class="sound">[${esc(l.sound)}]</p>
-    <ul class="rules">${l.rules.map((r) => `<li><b>${RULES[r][0]}</b> ${RULES[r][1]}</li>`).join('')}</ul>
+    ${l.rules.length ? `<ul class="rules">${l.rules.map((r) => `<li><b>${RULES[r][0]}</b> ${RULES[r][1]}</li>`).join('')}</ul>` : ''}
     <p class="hint small">‿는 이어 읽기, (t)는 멈추기만, 대문자는 강하게 읽는 부분이에요. 규칙을 적용해 만든 표시라 원어민 녹음으로 확인한 건 아니에요.</p>`;
 }
 
