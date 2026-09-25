@@ -134,6 +134,21 @@ a { color: inherit; }
 .coach { border-left: 4px solid var(--ink); padding: 2px 0 2px 12px; margin-top: 14px; }
 .coach .en { margin-top: 6px; }
 
+/* 오늘의 학습 · 복습 */
+.today { background: var(--card); border-radius: 18px; padding: 16px; margin-bottom: 18px; border-top: 5px solid var(--ink); }
+.today h2 { font-size: 1.1rem; margin: 0 0 2px; }
+.today .hint { margin-bottom: 10px; }
+.btn.go { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.picks { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 6px; }
+.picks a {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px; text-decoration: none;
+  padding: 10px 12px; border-radius: 12px; background: var(--bg); border-left: 4px solid var(--c);
+}
+.picks .p { font: 600 1rem/1.3 var(--en); }
+.picks .done { font-size: 0.78rem; font-weight: 700; color: var(--ok); }
+.q { font-size: 1.3rem; font-weight: 700; line-height: 1.4; margin: 10px 0 4px; }
+.label { font-size: 0.8rem; font-weight: 700; color: var(--muted); margin: 14px 0 0; }
+
 /* 연음 · 녹음 비교 */
 .more { margin-top: 10px; }
 .link { font: 600 1.15rem/1.4 var(--en); margin: 10px 0 0; }

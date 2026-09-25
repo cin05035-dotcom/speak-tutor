@@ -249,6 +249,7 @@ function home() {
       <h1>말해보는 영어</h1>
       <p>표현 하나를 골라 소리 내어 말해보세요. 상대가 알아들었는지 바로 알려줘요.</p>
     </header>
+    ${todayPanel()}
     <nav class="tabs" aria-label="분류">
       ${tabs.map(([k, v]) => `<button class="tab cat-${k}" aria-pressed="${k === tab}" data-tab="${k}">${v}</button>`).join('')}
     </nav>
@@ -397,7 +398,8 @@ function card(c) {
     else out.insertAdjacentHTML('beforeend', '<p class="hint small"><a href="#/settings">AI 교정</a>을 켜면 더 자연스러운 표현도 알려줘요.</p>');
   };
   $('#finish').onclick = () => {
-    save('done', [...new Set([...saved('done', []), c.id])]);
+    learned(c);
+    if (todayPlan().picks.includes(c.id)) { location.hash = ''; return; } // 오늘의 학습에서 왔으면 목록으로
     const same = bySit(c.cat).flatMap(([, cs]) => cs);
     const next = same[same.indexOf(c) + 1];
     location.hash = next ? '#/c/' + next.id : '';
@@ -412,6 +414,7 @@ function route() {
   const c = m && CARDS.find((x) => x.id === m[1]);
   if (c) card(c);
   else if (location.hash === '#/settings') settings();
+  else if (location.hash === '#/review') review();
   else home();
   window.scrollTo(0, 0);
 }
