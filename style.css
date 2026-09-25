@@ -1,6 +1,6 @@
 /* 색은 모두 여기서만 정한다. 대비는 계산해서 확인한 값 (본문 4.5:1, 버튼 테두리·아이콘 3:1 이상) */
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   --bg: #EEF2F7;
   --card: #FFFFFF;
   --ink: #152033;
@@ -24,9 +24,10 @@
   --ko: 'Pretendard', system-ui, sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, monospace;
 }
-/* 다크: 폰 설정을 따른다. 분류 칩은 "밝은 배경 + 어두운 글자"로 뒤집는다 */
-@media (prefers-color-scheme: dark) {
-  :root {
+/* 다크: theme.js가 기기 설정이나 사용자 선택에 따라 data-theme을 붙인다.
+   분류 칩은 "밝은 배경 + 어두운 글자"로 뒤집는다 */
+:root[data-theme="dark"] {
+    color-scheme: dark;
     --bg: #0F141C;
     --card: #1A2230;
     --ink: #E6EAF0;
@@ -44,7 +45,6 @@
     --travel: #5CC8D6;
     --service: #E8A964;
     --office: #A9ADFF;
-  }
 }
 .cat-daily { --c: var(--daily); }
 .cat-travel { --c: var(--travel); }
@@ -73,7 +73,7 @@ button, a, summary { touch-action: manipulation; -webkit-tap-highlight-color: tr
 a { color: inherit; }
 
 /* 목록 */
-.top h1 { font: 800 1.9rem/1.1 var(--ko); letter-spacing: -0.03em; margin: 8px 0 6px; }
+.top h1 { font: 800 1.9rem/1.1 var(--ko); letter-spacing: -0.03em; margin: 0 0 6px; }
 .top p { color: var(--muted); margin: 0 0 20px; font-size: 0.95rem; }
 .tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
 .tab {
@@ -157,8 +157,11 @@ a { color: inherit; }
 .note { color: var(--bad); margin-top: 10px; }
 
 /* 목록 상단 설정 링크, 설정 화면, AI 코멘트 */
-.top { position: relative; }
-.set { position: absolute; top: 0; right: 0; font-size: 0.82rem; font-weight: 600; color: var(--muted); padding: 6px 0; }
+.tools { display: flex; justify-content: flex-end; gap: 16px; }
+.set {
+  display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0;
+  border: 0; background: none; font-size: 0.82rem; font-weight: 600; color: var(--muted);
+}
 .page-h { font: 800 1.6rem/1.2 var(--ko); margin: 0 0 8px; }
 /* 입력칸 이름표 */
 .label { display: block; font-weight: 700; margin: 14px 0 0; }

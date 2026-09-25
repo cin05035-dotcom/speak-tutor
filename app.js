@@ -256,7 +256,10 @@ function home() {
   const tabs = [['fav', '★ 즐겨찾기'], ...Object.entries(CATS)];
   $('#app').innerHTML = `
     <header class="top">
-      <a class="set" href="#/settings">AI 교정 ${saved('gemini', '') ? '켜짐' : '꺼짐'}</a>
+      <div class="tools">
+        <button class="set" id="theme"></button>
+        <a class="set" href="#/settings">AI 교정 ${saved('gemini', '') ? '켜짐' : '꺼짐'}</a>
+      </div>
       <h1>말해보는 영어</h1>
       <p>매일 오늘의 학습부터 해보세요. 새 표현은 소리 내어 익히고, 익힌 표현은 다음 날부터 한국어만 보고 꺼내 말해요.</p>
     </header>
@@ -274,6 +277,14 @@ function home() {
         ${done.has(c.id) ? '<span class="done">완료</span>' : ''}
       </a>${star(c.id, fav.has(c.id))}</li>`).join('')}
     </ul>`).join('')}`;
+  const themeBtn = $('#theme');
+  const showTheme = (t) => {
+    const [icon, name] = { system: ['🌓', '기기 설정'], light: ['☀️', '라이트'], dark: ['🌙', '다크'] }[t];
+    themeBtn.innerHTML = `<span aria-hidden="true">${icon}</span> ${name}`;
+    themeBtn.setAttribute('aria-label', `화면 모드: ${name}. 누르면 바뀌어요`);
+  };
+  showTheme(Theme.get());
+  themeBtn.onclick = () => showTheme(Theme.next());
   $('#app').querySelectorAll('[data-tab]').forEach((b) => b.onclick = () => { save('tab', b.dataset.tab); home(); });
   $('#app').querySelectorAll('[data-fav]').forEach((b) => b.onclick = () => {
     toggleFav(b.dataset.fav);
