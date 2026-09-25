@@ -37,6 +37,14 @@ test('변형 3개, 롤플레이 예시 답변에 패턴이 들어 있다', () =>
   }
 });
 
+test('모든 문장은 그대로 말하면 통과한다 (판정이 정답을 떨어뜨리지 않는다)', () => {
+  const { judge } = require('./judge.js');
+  for (const c of CARDS) for (const v of c.variants) {
+    const r = judge(v.en, v.en, c.key);
+    assert.ok(r.passed, `${c.id}: ${v.en} → ${JSON.stringify(r)}`);
+  }
+});
+
 test('연음 표시는 있는 규칙만 쓰고 원문과 단어가 같다', () => {
   const words = (s) => s.toLowerCase().replace(/‿/g, ' ').replace(/\((t)\)/g, '$1').replace(/[^a-z' ]/g, ' ').split(/\s+/).filter(Boolean);
   for (const c of CARDS) for (const v of c.variants) {

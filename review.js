@@ -94,9 +94,9 @@ function review() {
   let ok = null; // 첫 시도 결과만 복습 일정에 반영
   const reveal = () => { $('#after').hidden = false; };
   $('#speak').onclick = async () => {
-    const heard = await mic($('#speak'), $('#out'), (h) => variantResult(v.en, h));
+    const heard = await mic($('#speak'), $('#out'), (h) => variantResult(v.en, h, c));
     if (!heard) return;
-    if (ok === null) ok = Judge.judge(v.en, heard).passed;
+    if (ok === null) ok = Judge.judge(v.en, heard, c.key).passed;
     $('#override').hidden = ok;
     reveal();
   };

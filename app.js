@@ -169,16 +169,23 @@ async function showCoach(card, heard, out) {
 
 const caption = (heard) => `<div class="cc"><span>상대에게 들린 말</span><p>${esc(heard)}</p></div>`;
 
-function variantResult(target, heard) {
-  const r = Judge.judge(target, heard);
+const words = (ws) => ws.map((w) => `<b>${esc(w)}</b>`).join(', ');
+
+// card를 넘기면 그 카드의 패턴을 말했는지도 본다
+function variantResult(target, heard, card) {
+  const r = Judge.judge(target, heard, card ? card.key : []);
   let v;
   if (r.confusions.length) {
     const c = r.confusions[0];
     v = `<p class="verdict bad">뜻이 바뀌었어요</p><p class="why"><b>${c.meant}</b>를 <b>${c.said}</b>로 들었어요. 둘 다 이 문장에 들어갈 수 있어서 문맥으로 구분이 안 돼요.</p>`;
+  } else if (r.missingCore.length) {
+    v = `<p class="verdict bad">핵심 단어가 빠졌어요</p><p class="why">안 들린 말: ${words(r.missingCore)}. 이 단어가 빠지면 뜻이 달라지거나 전달되지 않아요.</p>`;
+  } else if (r.patternMissed) {
+    v = `<p class="verdict bad">패턴이 안 들렸어요</p><p class="why">뜻은 통하지만, 이 카드의 표현 <b>${esc(card.pattern.replace('___', '~'))}</b>(으)로 말해보세요.</p>`;
   } else if (r.passed) {
     v = '<p class="verdict ok">전달됐어요</p>';
   } else {
-    v = `<p class="verdict bad">일부가 전달되지 않았어요</p><p class="why">안 들린 말: ${r.missing.map((w) => `<b>${esc(w)}</b>`).join(', ')}</p>`;
+    v = `<p class="verdict bad">일부가 전달되지 않았어요</p><p class="why">안 들린 말: ${words(r.missing)}</p>`;
   }
   return caption(heard) + v;
 }
@@ -365,7 +372,7 @@ function card(c) {
   $('#app').querySelectorAll('[data-slow]').forEach((b) => b.onclick = () => say(c.variants[b.dataset.slow].en, 0.7));
   $('#app').querySelectorAll('[data-mic]').forEach((b) => {
     const v = c.variants[b.dataset.mic];
-    b.onclick = () => mic(b, $('#out-' + b.dataset.mic), (heard) => variantResult(v.en, heard));
+    b.onclick = () => mic(b, $('#out-' + b.dataset.mic), (heard) => variantResult(v.en, heard, c));
   });
   $('.bar [data-fav]').onclick = (e) => {
     const on = toggleFav(c.id);

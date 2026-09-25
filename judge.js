@@ -13,6 +13,12 @@
     ['fly', 'fry'], ['glass', 'grass'], ['collect', 'correct'], ['file', 'pile'], ['fan', 'pan'],
     ['coffee', 'copy'], ['leave', 'live'], ['full', 'fool'], ['ship', 'sheep'], ['sit', 'seat'], ['fill', 'feel'],
     ['13', '30'], ['14', '40'], ['15', '50'], ['16', '60'], ['17', '70'], ['18', '80'], ['19', '90']];
+  // 빠져도 뜻이 거의 안 바뀌는 기능어·강조어. 나머지(내용어)는 하나라도 빠지면 통과 못 한다.
+  // not·no는 뜻을 뒤집으므로 여기 넣지 않는다
+  const LIGHT = new Set(('a an the i me my you your we us our he him his she her it its they them their ' +
+    'this that these those is am are was were be been being do does did have has had will would can could ' +
+    'should shall may might must to of for in on at by with from about as and or but if so just really very ' +
+    'pretty quite please').split(' '));
   const PAIR = new Map();
   for (const [a, b] of PAIRS) { PAIR.set(a, b); PAIR.set(b, a); }
 
@@ -22,7 +28,13 @@
       .flatMap((w) => (EXPAND[w] || (w in NUM ? String(NUM[w]) : w)).split(' '));
   }
 
-  function judge(target, heard) {
+  function usesPattern(key, heard) {
+    const h = ' ' + tokens(heard).join(' ') + ' ';
+    return [].concat(key).some((k) => h.includes(' ' + tokens(k).join(' ') + ' '));
+  }
+
+  // key: 카드의 패턴 구절. 목표 문장에 들어 있는 패턴이면 그것도 말해야 통과
+  function judge(target, heard, key = []) {
     const t = tokens(target), h = tokens(heard);
     const dp = Array.from({ length: t.length + 1 }, () => new Array(h.length + 1).fill(0));
     for (let i = t.length - 1; i >= 0; i--)
@@ -39,13 +51,11 @@
     const confusions = missing.filter((w) => PAIR.has(w) && hs.has(PAIR.get(w)))
       .map((w) => ({ meant: w, said: PAIR.get(w) }));
     const score = t.length ? dp[0][0] / t.length : 0;
-    // ponytail: 80% 단어 일치라는 단순 기준. 핵심어 누락을 따로 보려면 카드에 핵심어 필드를 추가
-    return { score, passed: score >= 0.8 && confusions.length === 0, missing, confusions };
-  }
-
-  function usesPattern(key, heard) {
-    const h = ' ' + tokens(heard).join(' ') + ' ';
-    return [].concat(key).some((k) => h.includes(' ' + tokens(k).join(' ') + ' '));
+    const missingCore = [...new Set(missing.filter((w) => !LIGHT.has(w) && !hs.has(w)))];
+    const pattern = [].concat(key).find((k) => usesPattern(k, target));
+    const patternMissed = pattern && !usesPattern(pattern, heard) ? pattern : null;
+    const passed = score >= 0.8 && !confusions.length && !missingCore.length && !patternMissed;
+    return { score, passed, missing, missingCore, patternMissed, confusions };
   }
 
   const api = { tokens, judge, usesPattern };
