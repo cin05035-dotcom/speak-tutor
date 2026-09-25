@@ -122,6 +122,16 @@ a { color: inherit; }
 .coach { border-left: 4px solid var(--ink); padding: 2px 0 2px 12px; margin-top: 14px; }
 .coach .en { margin-top: 6px; }
 
+/* 연음 · 녹음 비교 */
+.more { margin-top: 10px; }
+.link { font: 600 1.15rem/1.4 var(--en); margin: 10px 0 0; }
+.tie { color: var(--bad); font-weight: 800; }
+.hold { color: var(--muted); font-size: 0.85em; }
+.sound { font: 500 0.95rem/1.4 var(--mono); color: var(--muted); margin: 2px 0 0; }
+.rules { margin: 10px 0 0; padding-left: 18px; font-size: 0.88rem; }
+.rules li { margin-bottom: 4px; }
+.note:empty { display: none; }
+
 .tutor { border: 1.5px solid var(--line); border-radius: 14px; padding: 12px 14px; }
 .who { margin: 0; font-weight: 800; font-family: var(--en); }
 details { margin-top: 12px; }

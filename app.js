@@ -15,13 +15,42 @@ function pickVoice() {
   voice = us.find((v) => /google/i.test(v.name)) || us[0];
 }
 if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
-function say(text, rate = 0.95) {
+let utter; // 재생 중 참조를 잡아둬야 Chrome이 onend 전에 버리지 않는다
+function say(text, rate = 0.95, onend) {
   if (!('speechSynthesis' in window)) return;
   speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'en-US'; u.rate = rate;
-  if (voice) u.voice = voice;
-  speechSynthesis.speak(u);
+  utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'en-US'; utter.rate = rate;
+  if (voice) utter.voice = voice;
+  if (onend) utter.onend = onend;
+  speechSynthesis.speak(utter);
+}
+
+// ── 내 목소리 녹음 (튜터 음성과 비교 듣기용) ──
+let recorder = null;
+async function record(btn, onDone) {
+  if (recorder) { recorder.stop(); return; }
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+    onDone(null, '이 브라우저는 녹음을 지원하지 않아요. 안드로이드 Chrome에서 열어주세요.'); return;
+  }
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch { onDone(null, ERR['not-allowed']); return; }
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  const chunks = [];
+  const label = btn.textContent;
+  recorder = new MediaRecorder(stream);
+  recorder.ondataavailable = (e) => chunks.push(e.data);
+  recorder.onstop = () => {
+    stream.getTracks().forEach((t) => t.stop());
+    recorder = null;
+    btn.classList.remove('live'); btn.textContent = label;
+    onDone(URL.createObjectURL(new Blob(chunks, { type: chunks[0]?.type || 'audio/webm' })));
+  };
+  const r = recorder;
+  r.start();
+  btn.classList.add('live'); btn.textContent = '녹음 중… 다 말했으면 탭';
+  setTimeout(() => r.state === 'recording' && r.stop(), 10000);
 }
 
 // ── 음성 인식 ──
@@ -58,7 +87,8 @@ async function mic(btn, out, render) {
 }
 
 // ── AI 교정 (Gemini 무료 등급, 키는 이 폰의 브라우저에만 저장) ──
-const MODEL = 'gemini-3.8-flash';
+// 503(과부하)은 무료 등급에서 가끔 난다 → 같은 모델로 두 번 더, 그래도 안 되면 가벼운 모델로
+const TRIES = [['gemini-3.8-flash', 0], ['gemini-3.8-flash', 1000], ['gemini-3.8-flash', 3000], ['gemini-3.5-flash-lite', 0]];
 const API = 'https://generativelanguage.googleapis.com/v1beta/models';
 const VERDICT = {
   natural: ['ok', '자연스러워요'],
@@ -69,20 +99,28 @@ const VERDICT = {
 const apiError = (status) => ({
   400: '키가 올바르지 않아요. 설정에서 키를 다시 확인하세요.',
   403: '이 키로는 Gemini를 쓸 수 없어요. 설정에서 키를 다시 확인하세요.',
-  429: '무료 사용량을 잠시 넘었어요. 1분쯤 뒤에 다시 대답해보세요.',
+  429: '무료 사용량을 잠시 넘었어요. 1분쯤 뒤에 다시 시도하세요.',
+  500: '구글 서버가 붐벼요. 잠시 뒤 다시 시도하세요.',
+  503: '구글 서버가 붐벼요. 잠시 뒤 다시 시도하세요.',
 }[status] || (status ? `AI 교정을 불러오지 못했어요 (오류 ${status}).` : '인터넷 연결을 확인하세요.'));
 
 async function gemini(key, body) {
-  let res;
-  try {
-    res = await fetch(`${API}/${MODEL}:generateContent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-      body: JSON.stringify(body),
-    });
-  } catch { throw apiError(0); }
-  if (!res.ok) throw apiError(res.status);
-  return res.json();
+  let status;
+  for (const [model, wait] of TRIES) {
+    if (wait) await new Promise((r) => setTimeout(r, wait));
+    let res;
+    try {
+      res = await fetch(`${API}/${model}:generateContent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+        body: JSON.stringify(body),
+      });
+    } catch { throw apiError(0); }
+    if (res.ok) return res.json();
+    status = res.status;
+    if (status !== 503 && status !== 500) break;
+  }
+  throw apiError(status);
 }
 
 async function coach(card, heard) {
@@ -150,6 +188,24 @@ function roleplayResult(card, heard) {
   return caption(heard) + (used
     ? '<p class="verdict ok">패턴을 썼어요</p>'
     : `<p class="verdict bad">패턴이 안 들렸어요</p><p class="why"><b>${esc(card.pattern)}</b>를 넣어서 다시 말해보세요.</p>`);
+}
+
+// ── 연음 표시 ──
+const RULES = {
+  link: ['이어 읽기', '앞 단어의 끝 자음이 뒤 단어의 첫 모음에 붙어요. Can I → kə-nai'],
+  flap: ['t가 ㄹ처럼', '모음 사이의 t는 혀를 한 번 튕기듯 빠르게 발음해서 가벼운 d나 ㄹ처럼 들려요. get a → ge-də'],
+  yu: ['t·d + you', 't나 d 뒤에 you가 오면 섞여서 [츄]·[쥬]처럼 돼요. Did you → di-jə'],
+  same: ['겹자음은 한 번', '같은 자음이 겹치면 한 번만, 살짝 길게 발음해요. bad day → ba-day'],
+  stop: ['t는 멈추기만', '끝의 t 뒤에 자음이 오면 t를 터뜨리지 않고 혀만 대고 멈춰요. get back → ge(t) back'],
+  weak: ['약하게', 'to·for·and·can·a·of 같은 기능어는 힘을 빼서 tə·fər·ən·kən·ə·əv로 줄여요.'],
+  glide: ['모음 사이 이음', '모음으로 끝나고 모음으로 시작하면 사이에 가벼운 y나 w가 끼어들어요. okay if → o-kay-yif'],
+};
+function linkBlock(l) {
+  if (!l) return '<p class="hint small">이 문장의 연음 표시는 아직 준비 중이에요.</p>';
+  const marked = esc(l.text).replace(/‿/g, '<span class="tie">‿</span>').replace(/\(t\)/g, '<span class="hold">(t)</span>');
+  return `<p class="link">${marked}</p><p class="sound">[${esc(l.sound)}]</p>
+    <ul class="rules">${l.rules.map((r) => `<li><b>${RULES[r][0]}</b> ${RULES[r][1]}</li>`).join('')}</ul>
+    <p class="hint small">‿는 이어 읽기, (t)는 멈추기만, 대문자는 강하게 읽는 부분이에요. 규칙을 적용해 만든 표시라 원어민 녹음으로 확인한 건 아니에요.</p>`;
 }
 
 // ── 화면 ──
@@ -242,6 +298,15 @@ function card(c) {
             <button class="btn mic" data-mic="${i}">말하기</button>
           </div>
           <div class="out" id="out-${i}" aria-live="polite"></div>
+          <details class="more"><summary>연음 보기 · 내 목소리와 비교</summary>
+            ${linkBlock(v.link)}
+            <div class="row">
+              <button class="btn ghost" data-rec="${i}">내 목소리 녹음</button>
+              <button class="btn ghost" data-cmp="${i}" hidden>튜터 → 나 비교 듣기</button>
+            </div>
+            <p class="note" id="recnote-${i}" aria-live="polite"></p>
+            <p class="hint small">블루투스 이어폰 마이크는 소리가 먹먹하게 녹음돼요. 비교할 때는 폰 마이크가 더 정확해요.</p>
+          </details>
         </div>`).join('')}
       </section>
       <section class="step">
@@ -267,6 +332,23 @@ function card(c) {
     const v = c.variants[b.dataset.mic];
     b.onclick = () => mic(b, $('#out-' + b.dataset.mic), (heard) => variantResult(v.en, heard));
   });
+  const clips = [];
+  $('#app').querySelectorAll('[data-rec]').forEach((b) => {
+    const i = b.dataset.rec;
+    b.onclick = () => record(b, (url, err) => {
+      if (!b.isConnected) return;
+      $('#recnote-' + i).textContent = err || '';
+      if (!url) return;
+      if (clips[i]) URL.revokeObjectURL(clips[i]);
+      clips[i] = url;
+      b.textContent = '다시 녹음';
+      $(`[data-cmp="${i}"]`).hidden = false;
+    });
+  });
+  $('#app').querySelectorAll('[data-cmp]').forEach((b) => {
+    const i = b.dataset.cmp;
+    b.onclick = () => say(c.variants[i].en, 0.95, () => new Audio(clips[i]).play());
+  });
   $('#rp-say').onclick = () => say(c.roleplay.tutor);
   $('#rp-mic').onclick = async () => {
     const out = $('#rp-out');
@@ -285,6 +367,7 @@ function card(c) {
 
 function route() {
   if (rec) rec.abort();
+  if (recorder) recorder.stop();
   if ('speechSynthesis' in window) speechSynthesis.cancel();
   const m = location.hash.match(/^#\/c\/(.+)$/);
   const c = m && CARDS.find((x) => x.id === m[1]);
