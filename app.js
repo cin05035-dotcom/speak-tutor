@@ -236,6 +236,7 @@ function home() {
       const d = cs.filter((c) => done.has(c.id)).length;
       return `<details class="sit-group" data-open-key="${esc(key)}" ${open ? 'open' : ''}>
       <summary><h2 class="sit">${esc(title)}</h2><span class="sit-n">완료 ${d}/${cs.length}</span></summary>
+      ${tab !== 'fav' && wordsOf(title).length ? `<a class="words-link" href="#/w/${encodeURIComponent(title)}">📚 이 상황 단어 ${wordsOf(title).length}개</a>` : ''}
       <ul class="list">
       ${cs.map((c) => `<li class="cat-${c.cat}"><a href="#/c/${c.id}">
         <span class="p" lang="en">${slot(c.pattern)}</span>
@@ -423,6 +424,7 @@ function route() {
   else if (location.hash === '#/review') review();
   else if (location.hash === '#/listen') listen();
   else if (location.hash === '#/ask') ask();
+  else if (location.hash.startsWith('#/w/')) vocab(decodeURIComponent(location.hash.slice(4)));
   else home();
   window.scrollTo(0, 0);
 }

@@ -7,15 +7,30 @@ const { usesPattern } = require('./judge.js');
 
 // index.html이 불러오는 카드 파일을 그대로 따라 읽는다 (파일을 빠뜨리면 여기서 드러난다)
 const html = fs.readFileSync(__dirname + '/index.html', 'utf8');
-const files = [...html.matchAll(/src="(cards[^"?]*\.js)/g)].map((m) => m[1]);
+const files = [...html.matchAll(/src="((?:cards|words)[^"?]*\.js)/g)].map((m) => m[1]);
 const ctx = {};
-vm.runInNewContext(files.map((f) => fs.readFileSync(__dirname + '/' + f, 'utf8')).join(';\n') + ';this.CARDS=CARDS;this.SITS=SITS;', ctx);
-const { CARDS, SITS } = ctx;
+vm.runInNewContext(files.map((f) => fs.readFileSync(__dirname + '/' + f, 'utf8')).join(';\n') + ';this.CARDS=CARDS;this.SITS=SITS;this.WORDS=WORDS;', ctx);
+const { CARDS, SITS, WORDS } = ctx;
 const RULES = fs.readFileSync(__dirname + '/app.js', 'utf8').match(/const RULES = \{([\s\S]*?)\n\};/)[1]
   .match(/^\s+(\w+):/gm).map((s) => s.trim().slice(0, -1));
 
 test('카드 파일을 모두 불러온다', () => {
-  assert.deepStrictEqual(files.slice(1).sort(), fs.readdirSync(__dirname + '/cards').map((f) => 'cards/' + f).sort());
+  for (const dir of ['cards', 'words']) {
+    assert.deepStrictEqual(files.filter((f) => f.startsWith(dir + '/')).sort(), fs.readdirSync(__dirname + '/' + dir).map((f) => dir + '/' + f).sort());
+  }
+});
+
+test('단어: id가 겹치지 않고, 이어진 카드가 있고, 예문에 단어와 카드 패턴이 들어 있다', () => {
+  const { judge, tokens } = require('./judge.js');
+  assert.strictEqual(new Set(WORDS.map((w) => w.id)).size, WORDS.length);
+  for (const w of WORDS) {
+    const c = CARDS.find((x) => x.id === w.card);
+    assert.ok(c, `${w.id}: 카드 ${w.card} 없음`);
+    for (const f of ['en', 'ko', 'ex', 'exKo']) assert.ok(w[f], `${w.id}: ${f} 비어 있음`);
+    assert.ok(usesPattern(w.en, w.ex), `${w.id}: 예문에 단어가 없음`);
+    assert.ok(usesPattern(c.key, w.ex), `${w.id}: 예문에 카드 패턴이 없음`);
+    assert.ok(judge(w.ex, w.ex, c.key).passed, `${w.id}: 그대로 말해도 통과 못 함`);
+  }
 });
 
 test('id가 겹치지 않는다', () => {

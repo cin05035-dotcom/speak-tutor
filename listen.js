@@ -9,6 +9,7 @@ function listenSources() {
     ['fav', '즐겨찾기', all(CARDS.filter((c) => fav.has(c.id)))],
     ...Object.entries(CATS).map(([k, name]) => [k, name, all(CARDS.filter((c) => c.cat === k))]),
     ['all', '전체', all(CARDS)],
+    ['words', '단어 예문', WORDS.map((w) => fromKey('w:' + w.id)).filter(Boolean)],
   ];
 }
 

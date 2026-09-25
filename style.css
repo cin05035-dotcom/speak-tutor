@@ -182,6 +182,7 @@ a { color: inherit; }
 /* 접이식: 상황 묶음, 카드 단계, 듣기 설정. summary 전체를 누르면 열리고 닫힌다 */
 details.step > summary, .sit-group > summary {
   list-style: none; display: flex; align-items: center; gap: 8px; cursor: pointer; min-height: 44px;
+  color: var(--ink); font-size: 1rem; /* 작은 접이식(자막 보기 등)의 흐린 글자 스타일을 받지 않게 */
 }
 details.step > summary::-webkit-details-marker, .sit-group > summary::-webkit-details-marker { display: none; }
 details.step > summary::after, .sit-group > summary::after {
@@ -198,6 +199,16 @@ details.step:not([open]) { padding-bottom: 10px; padding-top: 10px; }
 .sit-group > summary { margin: 6px 0; }
 .sit-n { font-size: 0.8rem; font-weight: 600; color: var(--muted); }
 .sum { font-size: 0.82rem; font-weight: 600; color: var(--muted); }
+
+/* 상황별 단어 */
+.words-link { display: inline-flex; align-items: center; min-height: 44px; font-size: 0.9rem; font-weight: 700; text-decoration: none; }
+.word { padding: 12px 0; border-top: 1px solid var(--line); }
+.word:first-of-type { border-top: 0; }
+.word-head { align-items: center; flex-wrap: nowrap; margin-top: 0; }
+.word-head .en { flex: 1; min-width: 0; margin: 0; }
+.ex { margin: 6px 0 0; font-size: 0.95rem; }
+.linkish { border: 0; background: none; padding: 0 0 0 4px; min-height: 32px; font-size: 0.85rem; font-weight: 600; color: var(--muted); text-decoration: underline; }
+.choice .btn[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
 
 /* 복습: 말하기까지 걸린 시간 */
 .time { font-size: 0.88rem; font-weight: 700; color: var(--muted); margin: 6px 0 0; }

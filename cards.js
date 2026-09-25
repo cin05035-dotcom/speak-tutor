@@ -10,3 +10,5 @@ const SITS = {
 };
 // 카드 내용은 cards/ 폴더에 분류별로 있고, 각 파일이 여기에 push한다
 const CARDS = [];
+// 패턴에 끼워 쓰는 단어. words/ 폴더에서 push. card = 끼워 넣는 패턴의 카드 id, ex = 그 패턴으로 만든 예문
+const WORDS = [];

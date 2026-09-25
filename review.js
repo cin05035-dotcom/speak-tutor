@@ -2,6 +2,11 @@
 const NEW_PER_DAY = 3;
 const keyOf = (c, i) => `${c.id}:${i}`;
 function fromKey(k) {
+  if (k.startsWith('w:')) { // 단어 복습: 그 단어를 끼운 예문을, 이어진 카드의 패턴으로 판정
+    const w = WORDS.find((x) => x.id === k.slice(2));
+    const c = w && CARDS.find((x) => x.id === w.card);
+    return c ? { c, v: { en: w.ex, ko: w.exKo }, word: w } : null;
+  }
   const [id, i] = k.split(':');
   const c = CARDS.find((x) => x.id === id);
   return c && c.variants[i] ? { c, v: c.variants[i] } : null;
@@ -74,7 +79,7 @@ const FRESH_MAX = 5;
 async function freshen(session) {
   if (!saved('gemini', '')) return;
   const srs = saved('srs', {});
-  const picks = session.queue.filter((it) => (srs[it.k] || {}).box >= 2).slice(0, FRESH_MAX)
+  const picks = session.queue.filter((it) => !it.k.startsWith('w:') && (srs[it.k] || {}).box >= 2).slice(0, FRESH_MAX)
     .map((it) => ({ it, ...fromKey(it.k) }));
   if (!picks.length) return;
   try {
@@ -116,6 +121,7 @@ function review() {
     <section class="step">
       <h2>한국어를 보고 영어로 말해보세요</h2>
       ${item.retry ? '<p class="hint small">아까 틀린 문장이에요. 한 번 더 연습해요.</p>' : ''}
+      ${item.k.startsWith('w:') ? '<p class="hint small">단어 복습: 패턴에 단어를 넣어 말해보세요.</p>' : ''}
       ${item.fresh ? '<p class="tip">새 단어로 바꿔 말하기: 이미 익힌 패턴이에요. 처음 보는 문장이니 패턴에 새 단어를 넣어 말해보세요.</p>' : ''}
       <p class="q">${esc(v.ko)}</p>
       <details><summary>힌트: 패턴 보기</summary><p class="en" lang="en">${slot(c.pattern)}</p></details>
