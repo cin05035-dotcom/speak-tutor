@@ -149,6 +149,18 @@ a { color: inherit; }
 .q { font-size: 1.3rem; font-weight: 700; line-height: 1.4; margin: 10px 0 4px; }
 .label { font-size: 0.8rem; font-weight: 700; color: var(--muted); margin: 14px 0 0; }
 
+/* 출퇴근 듣기 */
+.select {
+  width: 100%; min-height: 48px; margin: 4px 0 12px; padding: 0 12px; border-radius: 12px;
+  border: 1.5px solid var(--line); background: var(--bg); color: var(--ink); font: inherit;
+}
+.check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 600; }
+.check input { width: 20px; height: 20px; accent-color: var(--ink); }
+.now .q { min-height: 2.8em; }
+.now .en { min-height: 1.4em; }
+.player { justify-content: space-between; }
+.player #play { flex: 1; }
+
 /* 연음 · 녹음 비교 */
 .more { margin-top: 10px; }
 .link { font: 600 1.15rem/1.4 var(--en); margin: 10px 0 0; }

@@ -9,19 +9,21 @@ const saved = (k, fallback) => { try { return JSON.parse(localStorage.getItem(k)
 const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* 저장 못 해도 학습은 계속 */ } };
 
 // ── 튜터 음성 (기기 내장 TTS) ──
-let voice;
+const voices = {};
 function pickVoice() {
-  const us = speechSynthesis.getVoices().filter((v) => v.lang.replace('_', '-') === 'en-US');
-  voice = us.find((v) => /google/i.test(v.name)) || us[0];
+  for (const lang of ['en-US', 'ko-KR']) {
+    const vs = speechSynthesis.getVoices().filter((v) => v.lang.replace('_', '-') === lang);
+    voices[lang] = vs.find((v) => /google/i.test(v.name)) || vs[0];
+  }
 }
 if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
 let utter; // 재생 중 참조를 잡아둬야 Chrome이 onend 전에 버리지 않는다
-function say(text, rate = 0.95, onend) {
+function say(text, rate = 0.95, onend, lang = 'en-US') {
   if (!('speechSynthesis' in window)) return;
   speechSynthesis.cancel();
   utter = new SpeechSynthesisUtterance(text);
-  utter.lang = 'en-US'; utter.rate = rate;
-  if (voice) utter.voice = voice;
+  utter.lang = lang; utter.rate = rate;
+  if (voices[lang]) utter.voice = voices[lang];
   if (onend) utter.onend = onend;
   speechSynthesis.speak(utter);
 }
@@ -416,12 +418,14 @@ function card(c) {
 function route() {
   if (rec) rec.abort();
   if (recorder) recorder.stop();
+  stopListen();
   if ('speechSynthesis' in window) speechSynthesis.cancel();
   const m = location.hash.match(/^#\/c\/(.+)$/);
   const c = m && CARDS.find((x) => x.id === m[1]);
   if (c) card(c);
   else if (location.hash === '#/settings') settings();
   else if (location.hash === '#/review') review();
+  else if (location.hash === '#/listen') listen();
   else home();
   window.scrollTo(0, 0);
 }
