@@ -1,9 +1,16 @@
 // 패턴 카드. 변형 문장 순서는 사용 빈도 "추정" 순 (코퍼스 검증 전).
 // cat: daily | travel | service | office   tone: casual | neutral | polite
 // key: 롤플레이에서 패턴을 썼는지 볼 때 찾는 구절 (여러 개면 배열)
+// sit: 목록에서 묶어 보여줄 상황. 순서는 아래 SITS를 따른다
+const SITS = {
+  daily: ['카페·식당', '쇼핑', '약속·계획', '스몰토크·근황', '리액션·맞장구', '감정·의견', '부탁·거절'],
+  travel: ['공항·기내', '호텔', '길 찾기·교통', '관광·예약', '문제 생겼을 때'],
+  service: ['맞이하기·용건 확인', '안내·설명', '기다리게 할 때', '사과·불만 대응', '결제·마무리'],
+  office: ['동료 스몰토크', '의견 말하기', '동의·반대', '되묻기·확인', '업무 요청', '진행 보고', '일정 조율', '화상회의'],
+};
 const CARDS = [
   // ── 일상 ──
-  { id: 'can-i-get', cat: 'daily', tone: 'neutral', pattern: 'Can I get ___?', key: 'can i get',
+  { id: 'can-i-get', cat: 'daily', sit: '카페·식당', tone: 'neutral', pattern: 'Can I get ___?', key: 'can i get',
     ko: '~ 주세요', when: '주문하거나 뭔가를 요청할 때 가장 무난한 표현',
     tip: '"Give me ___"는 명령처럼 들려서 무례하게 느껴질 수 있어요.',
     variants: [
@@ -14,28 +21,28 @@ const CARDS = [
       { en: 'Can I get the check?', ko: '계산서 주세요.',
         link: { text: 'Can‿I ge(t) the check?', sound: 'kə-nai ge(t) thə CHECK', rules: ['link', 'stop', 'weak'] } }],
     roleplay: { tutor: 'Hi! What can I get for you?', ko: '안녕하세요! 뭘 드릴까요?', answer: 'Can I get a latte, please?' } },
-  { id: 'do-you-have', cat: 'daily', tone: 'neutral', pattern: 'Do you have ___?', key: 'do you have',
+  { id: 'do-you-have', cat: 'daily', sit: '쇼핑', tone: 'neutral', pattern: 'Do you have ___?', key: 'do you have',
     ko: '~ 있어요?', when: '가게에서 물건이나 옵션을 물어볼 때',
     variants: [
       { en: 'Do you have this in a smaller size?', ko: '이거 더 작은 사이즈 있어요?' },
       { en: 'Do you have any vegetarian options?', ko: '채식 메뉴 있어요?' },
       { en: 'Do you have Wi-Fi here?', ko: '여기 와이파이 돼요?' }],
     roleplay: { tutor: 'Anything I can help you find?', ko: '찾으시는 거 있으세요?', answer: 'Do you have this in black?' } },
-  { id: 'are-you-free', cat: 'daily', tone: 'casual', pattern: 'Are you free ___?', key: 'are you free',
+  { id: 'are-you-free', cat: 'daily', sit: '약속·계획', tone: 'casual', pattern: 'Are you free ___?', key: 'are you free',
     ko: '~ 시간 돼?', when: '약속을 잡을 때',
     variants: [
       { en: 'Are you free this weekend?', ko: '이번 주말에 시간 돼?' },
       { en: 'Are you free for lunch tomorrow?', ko: '내일 점심 같이 할 시간 돼?' },
       { en: 'Are you free to talk now?', ko: '지금 얘기할 수 있어?' }],
     roleplay: { tutor: 'We should hang out sometime!', ko: '언제 한번 놀자!', answer: 'Totally! Are you free this Saturday?' } },
-  { id: 'how-about', cat: 'daily', tone: 'casual', pattern: 'How about ___?', key: 'how about',
+  { id: 'how-about', cat: 'daily', sit: '약속·계획', tone: 'casual', pattern: 'How about ___?', key: 'how about',
     ko: '~ 어때?', when: '제안하거나 다른 안을 낼 때',
     variants: [
       { en: 'How about 7?', ko: '7시 어때?' },
       { en: 'How about we grab dinner instead?', ko: '대신 저녁 먹는 건 어때?' },
       { en: 'How about next Friday?', ko: '다음 주 금요일 어때?' }],
     roleplay: { tutor: "I can't do Thursday. Sorry!", ko: '목요일은 안 돼. 미안!', answer: 'No worries. How about Friday?' } },
-  { id: 'im-down', cat: 'daily', tone: 'casual', pattern: "I'm down for ___.", key: "i'm down",
+  { id: 'im-down', cat: 'daily', sit: '약속·계획', tone: 'casual', pattern: "I'm down for ___.", key: "i'm down",
     ko: '~ 좋아, 콜', when: '제안에 흔쾌히 동의할 때. 20~30대가 많이 써요',
     tip: '"I\'m feeling down"(우울해)과 뜻이 정반대예요. 회사에서는 쓰지 마세요.',
     variants: [
@@ -43,21 +50,21 @@ const CARDS = [
       { en: "I'm down for tacos.", ko: '타코 콜.' },
       { en: "I'm down to hang out tonight.", ko: '오늘 밤 놀 수 있어.' }],
     roleplay: { tutor: 'Wanna grab some drinks after work?', ko: '퇴근하고 한잔할래?', answer: "I'm down for that!" } },
-  { id: 'how-was-your', cat: 'daily', tone: 'casual', pattern: 'How was your ___?', key: 'how was your',
+  { id: 'how-was-your', cat: 'daily', sit: '스몰토크·근황', tone: 'casual', pattern: 'How was your ___?', key: 'how was your',
     ko: '~ 어땠어?', when: '스몰토크를 시작할 때',
     variants: [
       { en: 'How was your weekend?', ko: '주말 어땠어?' },
       { en: 'How was your trip?', ko: '여행 어땠어?' },
       { en: 'How was your day?', ko: '오늘 하루 어땠어?' }],
     roleplay: { tutor: 'Hey, I just got back from Hawaii!', ko: '나 하와이 갔다가 방금 왔어!', answer: 'No way! How was your trip?' } },
-  { id: 'ive-been-lately', cat: 'daily', tone: 'casual', pattern: "I've been ___ lately.", key: "i've been",
+  { id: 'ive-been-lately', cat: 'daily', sit: '스몰토크·근황', tone: 'casual', pattern: "I've been ___ lately.", key: "i've been",
     ko: '요즘 ~하고 있어', when: '근황을 말할 때',
     variants: [
       { en: "I've been really busy lately.", ko: '요즘 정말 바빴어.' },
       { en: "I've been working out a lot lately.", ko: '요즘 운동 많이 하고 있어.' },
       { en: "I've been into cooking lately.", ko: '요즘 요리에 빠졌어.' }],
     roleplay: { tutor: "Long time no see! What's new with you?", ko: '오랜만이야! 요즘 어떻게 지내?', answer: "I've been really busy with work lately." } },
-  { id: 'not-really-into', cat: 'daily', tone: 'casual', pattern: "I'm not really into ___.", key: 'not really into',
+  { id: 'not-really-into', cat: 'daily', sit: '감정·의견', tone: 'casual', pattern: "I'm not really into ___.", key: 'not really into',
     ko: '~는 별로 안 좋아해', when: '취향을 부드럽게 거절할 때',
     tip: '"I don\'t like ___"보다 부드럽게 들려요.',
     variants: [
@@ -65,7 +72,7 @@ const CARDS = [
       { en: "I'm not really into sports.", ko: '스포츠는 별로 안 좋아해.' },
       { en: "I'm not really into spicy food.", ko: '매운 음식은 별로야.' }],
     roleplay: { tutor: 'Do you wanna watch a horror movie tonight?', ko: '오늘 밤에 공포 영화 볼래?', answer: "Hmm, I'm not really into horror movies." } },
-  { id: 'that-sounds', cat: 'daily', tone: 'casual', pattern: 'That sounds ___.', key: 'that sounds',
+  { id: 'that-sounds', cat: 'daily', sit: '리액션·맞장구', tone: 'casual', pattern: 'That sounds ___.', key: 'that sounds',
     ko: '그거 ~하겠다', when: '상대 말에 리액션할 때. 회화에서 가장 자주 쓰는 편',
     tip: '명사 앞에는 like를 붙여요. (That sounds like a plan.)',
     variants: [
@@ -73,7 +80,7 @@ const CARDS = [
       { en: 'That sounds rough.', ko: '힘들었겠다.' },
       { en: 'That sounds like a plan.', ko: '좋아, 그렇게 하자.' }],
     roleplay: { tutor: 'I had to work until midnight yesterday.', ko: '어제 자정까지 일했어.', answer: 'Oh no, that sounds rough.' } },
-  { id: 'i-feel-like', cat: 'daily', tone: 'casual', pattern: 'I feel like ___.', key: 'i feel like',
+  { id: 'i-feel-like', cat: 'daily', sit: '감정·의견', tone: 'casual', pattern: 'I feel like ___.', key: 'i feel like',
     ko: '~가 당겨 / ~인 것 같아', when: '먹고 싶은 것, 몸 상태, 예감을 말할 때',
     tip: '뒤에 명사가 오면 "~가 당긴다"는 뜻이에요.',
     variants: [
@@ -83,21 +90,21 @@ const CARDS = [
     roleplay: { tutor: 'What do you wanna eat tonight?', ko: '오늘 저녁 뭐 먹고 싶어?', answer: 'I feel like Korean food.' } },
 
   // ── 여행 ──
-  { id: 'is-there-around', cat: 'travel', tone: 'neutral', pattern: 'Is there ___ around here?', key: 'is there',
+  { id: 'is-there-around', cat: 'travel', sit: '길 찾기·교통', tone: 'neutral', pattern: 'Is there ___ around here?', key: 'is there',
     ko: '이 근처에 ~ 있어요?', when: '길에서 장소를 찾을 때',
     variants: [
       { en: 'Is there a pharmacy around here?', ko: '이 근처에 약국 있어요?' },
       { en: 'Is there a subway station nearby?', ko: '근처에 지하철역 있어요?' },
       { en: 'Is there a good place to eat around here?', ko: '이 근처에 괜찮은 식당 있어요?' }],
     roleplay: { tutor: 'Hi there, can I help you with something?', ko: '도와드릴까요?', answer: 'Yes, is there an ATM around here?' } },
-  { id: 'how-do-i-get-to', cat: 'travel', tone: 'neutral', pattern: 'How do I get to ___?', key: 'how do i get to',
+  { id: 'how-do-i-get-to', cat: 'travel', sit: '길 찾기·교통', tone: 'neutral', pattern: 'How do I get to ___?', key: 'how do i get to',
     ko: '~에 어떻게 가요?', when: '길을 물을 때',
     variants: [
       { en: 'How do I get to the airport?', ko: '공항에 어떻게 가요?' },
       { en: 'How do I get to Times Square from here?', ko: '여기서 타임스스퀘어 어떻게 가요?' },
       { en: 'How do I get to Gate 12?', ko: '12번 게이트 어떻게 가요?' }],
     roleplay: { tutor: 'You look lost. Where are you headed?', ko: '길 잃으신 것 같네요. 어디 가세요?', answer: 'How do I get to Central Park?' } },
-  { id: 'id-like-to', cat: 'travel', tone: 'polite', pattern: "I'd like to ___.", key: "i'd like to",
+  { id: 'id-like-to', cat: 'travel', sit: '호텔', tone: 'polite', pattern: "I'd like to ___.", key: "i'd like to",
     ko: '~하고 싶습니다', when: '호텔·공항에서 요청할 때',
     tip: '"I want to ___"보다 정중해요. 호텔·공항에서는 이걸 기본으로 쓰세요.',
     variants: [
@@ -105,7 +112,7 @@ const CARDS = [
       { en: "I'd like to change my seat.", ko: '좌석을 바꾸고 싶어요.' },
       { en: "I'd like to stay one more night.", ko: '하룻밤 더 묵고 싶어요.' }],
     roleplay: { tutor: 'Good evening! How can I help you?', ko: '안녕하세요! 무엇을 도와드릴까요?', answer: "Hi, I'd like to check in. The reservation is under Kim." } },
-  { id: 'is-it-okay-if', cat: 'travel', tone: 'neutral', pattern: 'Is it okay if ___?', key: 'is it okay if',
+  { id: 'is-it-okay-if', cat: 'travel', sit: '호텔', tone: 'neutral', pattern: 'Is it okay if ___?', key: 'is it okay if',
     ko: '~해도 괜찮을까요?', when: '허락을 구할 때',
     variants: [
       { en: 'Is it okay if I leave my bags here?', ko: '짐을 여기 둬도 될까요?',
@@ -115,7 +122,7 @@ const CARDS = [
       { en: 'Is it okay if I pay by card?', ko: '카드로 계산해도 될까요?',
         link: { text: 'Is‿it‿okay‿if‿I pay by card?', sound: 'i-zi-dou-KAY-yi-fai PAY bai CARD', rules: ['link', 'flap', 'glide'] } }],
     roleplay: { tutor: 'Checkout is at 11. Anything else?', ko: '체크아웃은 11시예요. 더 필요하신 거 있으세요?', answer: 'Is it okay if I leave my bags here after checkout?' } },
-  { id: 'problem-with', cat: 'travel', tone: 'polite', pattern: "I think there's a problem with ___.", key: "there's a problem with",
+  { id: 'problem-with', cat: 'travel', sit: '문제 생겼을 때', tone: 'polite', pattern: "I think there's a problem with ___.", key: "there's a problem with",
     ko: '~에 문제가 있는 것 같아요', when: '방, 예약, 계산서에 문제가 있을 때',
     tip: '"I think"로 시작하면 따지는 느낌이 줄어요.',
     variants: [
@@ -125,14 +132,14 @@ const CARDS = [
     roleplay: { tutor: 'Is everything okay with your stay?', ko: '지내시는 데 불편한 건 없으세요?', answer: "Actually, I think there's a problem with the air conditioner." } },
 
   // ── 회사 · 고객 응대 (매장·호텔) ──
-  { id: 'let-me-check', cat: 'service', tone: 'polite', pattern: 'Let me check ___ for you.', key: 'let me check',
+  { id: 'let-me-check', cat: 'service', sit: '안내·설명', tone: 'polite', pattern: 'Let me check ___ for you.', key: 'let me check',
     ko: '확인해 드릴게요', when: '바로 답하기 어려울 때 시간을 버는 표현',
     variants: [
       { en: 'Let me check that for you.', ko: '확인해 드릴게요.' },
       { en: 'Let me check if we have it in stock.', ko: '재고가 있는지 확인해 볼게요.' },
       { en: 'Let me check with my manager.', ko: '매니저에게 확인해 볼게요.' }],
     roleplay: { tutor: 'Do you have this jacket in a medium?', ko: '이 재킷 M 사이즈 있어요?', answer: 'Let me check if we have it in stock.' } },
-  { id: 'sorry-for', cat: 'service', tone: 'polite', pattern: "I'm sorry for ___.", key: ["i'm sorry", "i'm so sorry", 'i apologize'],
+  { id: 'sorry-for', cat: 'service', sit: '사과·불만 대응', tone: 'polite', pattern: "I'm sorry for ___.", key: ["i'm sorry", "i'm so sorry", 'i apologize'],
     ko: '~해서 죄송합니다', when: '고객에게 사과할 때',
     tip: '"I apologize for ___"가 더 격식 있어요.',
     variants: [
@@ -140,7 +147,7 @@ const CARDS = [
       { en: 'I apologize for the inconvenience.', ko: '불편을 드려 죄송합니다.' },
       { en: "I'm sorry about the mix-up.", ko: '착오가 있었네요. 죄송합니다.' }],
     roleplay: { tutor: "I've been waiting here for twenty minutes!", ko: '여기서 20분이나 기다렸어요!', answer: "I'm so sorry for the wait. Let me check on your order." } },
-  { id: 'it-should', cat: 'service', tone: 'polite', pattern: 'It should ___.', key: 'it should',
+  { id: 'it-should', cat: 'service', sit: '안내·설명', tone: 'polite', pattern: 'It should ___.', key: 'it should',
     ko: '~일 거예요', when: '시간이나 절차를 안내할 때',
     tip: '"It will"보다 덜 단정적이라, 약속을 못 지킬 위험이 줄어요.',
     variants: [
@@ -148,14 +155,14 @@ const CARDS = [
       { en: 'It should be ready by 3.', ko: '3시까지는 준비될 거예요.' },
       { en: 'It should arrive within a week.', ko: '일주일 안에 도착할 거예요.' }],
     roleplay: { tutor: 'How long will it take to fix my phone?', ko: '폰 고치는 데 얼마나 걸려요?', answer: 'It should take about an hour.' } },
-  { id: 'would-you-like', cat: 'service', tone: 'polite', pattern: 'Would you like ___?', key: 'would you like',
+  { id: 'would-you-like', cat: 'service', sit: '결제·마무리', tone: 'polite', pattern: 'Would you like ___?', key: 'would you like',
     ko: '~ 하시겠어요?', when: '고객에게 뭔가를 제안할 때',
     variants: [
       { en: 'Would you like a receipt?', ko: '영수증 드릴까요?' },
       { en: 'Would you like me to call you a taxi?', ko: '택시 불러 드릴까요?' },
       { en: 'Would you like to wait here?', ko: '여기서 기다리시겠어요?' }],
     roleplay: { tutor: "Okay, I'll take this one.", ko: '이걸로 할게요.', answer: 'Great choice! Would you like a bag?' } },
-  { id: 'could-i-get-your', cat: 'service', tone: 'polite', pattern: 'Could I get your ___?', key: 'could i get your',
+  { id: 'could-i-get-your', cat: 'service', sit: '맞이하기·용건 확인', tone: 'polite', pattern: 'Could I get your ___?', key: 'could i get your',
     ko: '~ 알려주시겠어요?', when: '고객 정보를 요청할 때',
     variants: [
       { en: 'Could I get your name, please?', ko: '성함 알려주시겠어요?' },
@@ -164,7 +171,7 @@ const CARDS = [
     roleplay: { tutor: 'Hi, I have a reservation for tonight.', ko: '오늘 밤 예약했는데요.', answer: 'Sure. Could I get your name, please?' } },
 
   // ── 회사 · 사내 소통 (외국계) ──
-  { id: 'just-to-clarify', cat: 'office', tone: 'neutral', pattern: 'Just to clarify, ___?', key: 'just to clarify',
+  { id: 'just-to-clarify', cat: 'office', sit: '되묻기·확인', tone: 'neutral', pattern: 'Just to clarify, ___?', key: 'just to clarify',
     ko: '확인차 여쭤보면, ~?', when: '지시나 내용을 다시 확인할 때',
     tip: '못 알아들었을 때 "Sorry?"만 반복하는 것보다 훨씬 프로답게 들려요.',
     variants: [
@@ -172,14 +179,14 @@ const CARDS = [
       { en: 'Just to clarify, you want me to send it to the client?', ko: '확인하자면, 이걸 클라이언트에게 보내라는 거죠?' },
       { en: 'Just to clarify, are we meeting in person?', ko: '확인하자면, 대면으로 만나는 거죠?' }],
     roleplay: { tutor: 'Can you send the report to Jake by Friday?', ko: '금요일까지 보고서 Jake한테 보내줄래요?', answer: 'Sure. Just to clarify, the final version or the draft?' } },
-  { id: 'i-was-wondering-if', cat: 'office', tone: 'polite', pattern: 'I was wondering if ___.', key: 'i was wondering if',
+  { id: 'i-was-wondering-if', cat: 'office', sit: '업무 요청', tone: 'polite', pattern: 'I was wondering if ___.', key: 'i was wondering if',
     ko: '혹시 ~해도 될까요', when: '부탁하기 어려운 것을 공손하게 요청할 때',
     variants: [
       { en: 'I was wondering if you could take a look at this.', ko: '혹시 이것 좀 봐주실 수 있을까요?' },
       { en: 'I was wondering if I could leave early today.', ko: '혹시 오늘 일찍 퇴근해도 될까요?' },
       { en: 'I was wondering if we could push the meeting.', ko: '혹시 회의를 미룰 수 있을까요?' }],
     roleplay: { tutor: "Hey, what's up?", ko: '무슨 일이에요?', answer: 'I was wondering if you could take a look at my slides.' } },
-  { id: 'get-back-to-you', cat: 'office', tone: 'neutral', pattern: "I'll get back to you ___.", key: 'get back to you',
+  { id: 'get-back-to-you', cat: 'office', sit: '진행 보고', tone: 'neutral', pattern: "I'll get back to you ___.", key: 'get back to you',
     ko: '~ 다시 알려드릴게요', when: '당장 답하지 못할 때',
     variants: [
       { en: "I'll get back to you on that.", ko: '그건 확인하고 다시 알려드릴게요.',
@@ -189,14 +196,14 @@ const CARDS = [
       { en: "I'll get back to you once I hear from them.", ko: '그쪽에서 연락 오면 바로 알려드릴게요.',
         link: { text: "I'll ge(t) back to you once‿I hear from them.", sound: 'ail ge(t) BACK tə yu WAN-sai HEER frəm thəm', rules: ['stop', 'weak', 'link'] } }],
     roleplay: { tutor: 'Do you know when the client will sign?', ko: '클라이언트가 언제 서명할지 알아요?', answer: "Not yet. I'll get back to you once I hear from them." } },
-  { id: 'see-your-point', cat: 'office', tone: 'neutral', pattern: 'I see your point, but ___.', key: 'i see your point',
+  { id: 'see-your-point', cat: 'office', sit: '동의·반대', tone: 'neutral', pattern: 'I see your point, but ___.', key: 'i see your point',
     ko: '무슨 말인지 알겠는데, ~', when: '회의에서 반대 의견을 낼 때',
     variants: [
       { en: "I see your point, but I'm worried about the timeline.", ko: '무슨 말인지 알겠는데, 일정이 걱정돼요.' },
       { en: 'I see your point, but I think we need more data.', ko: '말씀은 이해하는데, 데이터가 더 필요할 것 같아요.' },
       { en: 'I see your point, but the client might not like it.', ko: '무슨 뜻인지 알겠는데, 클라이언트가 안 좋아할 수도 있어요.' }],
     roleplay: { tutor: 'I think we should launch next week.', ko: '다음 주에 출시하는 게 좋겠어요.', answer: "I see your point, but I'm worried about the timeline." } },
-  { id: 'quick-question', cat: 'office', tone: 'casual', pattern: 'Quick question about ___.', key: 'quick question',
+  { id: 'quick-question', cat: 'office', sit: '업무 요청', tone: 'casual', pattern: 'Quick question about ___.', key: 'quick question',
     ko: '~ 관련해서 잠깐 질문', when: '동료에게 가볍게 물어볼 때',
     variants: [
       { en: 'Quick question about the report.', ko: '보고서 관련해서 잠깐 질문이요.' },

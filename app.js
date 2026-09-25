@@ -211,11 +211,37 @@ function linkBlock(l) {
 // ── 화면 ──
 const slot = (p) => esc(p).replace('___', '<span class="slot" aria-label="빈칸"></span>');
 
+// 분류 안의 카드를 상황 순서대로 묶는다. SITS에 없는 상황은 맨 뒤 '기타'로
+function bySit(cat) {
+  const order = SITS[cat] || [];
+  const groups = order.map((s) => [s, CARDS.filter((c) => c.cat === cat && c.sit === s)]);
+  groups.push(['기타', CARDS.filter((c) => c.cat === cat && !order.includes(c.sit))]);
+  return groups.filter(([, cs]) => cs.length);
+}
+
+function toggleFav(id) {
+  const f = new Set(saved('fav', []));
+  f.has(id) ? f.delete(id) : f.add(id);
+  save('fav', [...f]);
+  return f.has(id);
+}
+const star = (id, on) =>
+  `<button class="star" data-fav="${id}" aria-pressed="${on}" aria-label="즐겨찾기">${on ? '★' : '☆'}</button>`;
+
 function home() {
   const done = new Set(saved('done', []));
-  const tab = saved('tab', 'daily');
-  const cards = CARDS.filter((c) => c.cat === tab);
+  const fav = new Set(saved('fav', []));
+  let tab = saved('tab', 'daily');
+  if (tab !== 'fav' && !CATS[tab]) tab = 'daily';
+  const groups = tab === 'fav'
+    ? Object.keys(CATS).map((k) => [CATS[k], CARDS.filter((c) => c.cat === k && fav.has(c.id))]).filter(([, cs]) => cs.length)
+    : bySit(tab);
+  const cards = groups.flatMap(([, cs]) => cs);
   const n = cards.filter((c) => done.has(c.id)).length;
+  const count = tab === 'fav'
+    ? `즐겨찾기 ${cards.length}개`
+    : `${GROUP[tab] ? GROUP[tab] + ' · ' : ''}${CATS[tab]} — ${cards.length}개 중 ${n}개 완료`;
+  const tabs = [['fav', '★ 즐겨찾기'], ...Object.entries(CATS)];
   $('#app').innerHTML = `
     <header class="top">
       <a class="set" href="#/settings">AI 교정 ${saved('gemini', '') ? '켜짐' : '꺼짐'}</a>
@@ -223,17 +249,23 @@ function home() {
       <p>표현 하나를 골라 소리 내어 말해보세요. 상대가 알아들었는지 바로 알려줘요.</p>
     </header>
     <nav class="tabs" aria-label="분류">
-      ${Object.entries(CATS).map(([k, v]) => `<button class="tab cat-${k}" aria-pressed="${k === tab}" data-tab="${k}">${v}</button>`).join('')}
+      ${tabs.map(([k, v]) => `<button class="tab cat-${k}" aria-pressed="${k === tab}" data-tab="${k}">${v}</button>`).join('')}
     </nav>
-    <p class="count">${GROUP[tab] ? GROUP[tab] + ' · ' : ''}${CATS[tab]} — ${cards.length}개 중 ${n}개 완료</p>
-    <ul class="list cat-${tab}">
-      ${cards.map((c) => `<li><a href="#/c/${c.id}">
+    <p class="count">${count}</p>
+    ${cards.length ? '' : '<p class="empty">아직 모은 표현이 없어요. 카드의 ☆를 누르면 여기에 모여요.</p>'}
+    ${groups.map(([title, cs]) => `<h2 class="sit">${esc(title)}</h2>
+    <ul class="list">
+      ${cs.map((c) => `<li class="cat-${c.cat}"><a href="#/c/${c.id}">
         <span class="p">${slot(c.pattern)}</span>
         <span class="k">${esc(c.ko)}</span>
         ${done.has(c.id) ? '<span class="done" aria-label="완료">완료</span>' : ''}
-      </a></li>`).join('')}
-    </ul>`;
+      </a>${star(c.id, fav.has(c.id))}</li>`).join('')}
+    </ul>`).join('')}`;
   $('#app').querySelectorAll('[data-tab]').forEach((b) => b.onclick = () => { save('tab', b.dataset.tab); home(); });
+  $('#app').querySelectorAll('[data-fav]').forEach((b) => b.onclick = () => {
+    toggleFav(b.dataset.fav);
+    home();
+  });
 }
 
 function settings() {
@@ -273,7 +305,8 @@ function settings() {
 function card(c) {
   const [first] = c.variants;
   $('#app').innerHTML = `
-    <header class="bar"><a href="#" class="back">← 목록</a><span class="chip cat-${c.cat}">${CATS[c.cat]}</span></header>
+    <header class="bar"><a href="#" class="back">← 목록</a>
+      <span class="bar-r">${star(c.id, saved('fav', []).includes(c.id))}<span class="chip cat-${c.cat}">${CATS[c.cat]} · ${esc(c.sit || '기타')}</span></span></header>
     <section class="intro cat-${c.cat}">
       <p class="tone">${TONE[c.tone]}</p>
       <h1 class="pattern">${slot(c.pattern)}</h1>
@@ -332,6 +365,11 @@ function card(c) {
     const v = c.variants[b.dataset.mic];
     b.onclick = () => mic(b, $('#out-' + b.dataset.mic), (heard) => variantResult(v.en, heard));
   });
+  $('.bar [data-fav]').onclick = (e) => {
+    const on = toggleFav(c.id);
+    e.currentTarget.textContent = on ? '★' : '☆';
+    e.currentTarget.setAttribute('aria-pressed', on);
+  };
   const clips = [];
   $('#app').querySelectorAll('[data-rec]').forEach((b) => {
     const i = b.dataset.rec;
@@ -359,7 +397,7 @@ function card(c) {
   };
   $('#finish').onclick = () => {
     save('done', [...new Set([...saved('done', []), c.id])]);
-    const same = CARDS.filter((x) => x.cat === c.cat);
+    const same = bySit(c.cat).flatMap(([, cs]) => cs);
     const next = same[same.indexOf(c) + 1];
     location.hash = next ? '#/c/' + next.id : '';
   };
