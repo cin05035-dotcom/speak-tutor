@@ -213,7 +213,8 @@ const slot = (p) => esc(p).replace('___', '<span class="slot" aria-label="빈칸
 
 // 분류 안의 카드를 상황 순서대로 묶는다. SITS에 없는 상황은 맨 뒤 '기타'로
 function bySit(cat) {
-  const order = SITS[cat] || [];
+  // 캐시 때문에 예전 cards.js(SITS 없음)가 섞여 들어와도 목록은 뜨게
+  const order = (typeof SITS !== 'undefined' && SITS[cat]) || [];
   const groups = order.map((s) => [s, CARDS.filter((c) => c.cat === cat && c.sit === s)]);
   groups.push(['기타', CARDS.filter((c) => c.cat === cat && !order.includes(c.sit))]);
   return groups.filter(([, cs]) => cs.length);
