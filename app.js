@@ -213,6 +213,7 @@ function home() {
     ? `즐겨찾기 ${cards.length}개`
     : `${GROUP[tab] ? GROUP[tab] + ' · ' : ''}${CATS[tab]} — ${cards.length}개 중 ${n}개 완료`;
   const tabs = [['fav', '★ 즐겨찾기'], ...Object.entries(CATS)];
+  const opened = saved('opened', {});
   $('#app').innerHTML = `
     <header class="top">
       <div class="tools">
@@ -228,14 +229,24 @@ function home() {
     </nav>
     <p class="count">${count}</p>
     ${cards.length ? '' : '<p class="empty">아직 모은 표현이 없어요. 카드의 ☆를 누르면 여기에 모여요.</p>'}
-    ${groups.map(([title, cs]) => `<h2 class="sit">${esc(title)}</h2>
-    <ul class="list">
+    ${groups.map(([title, cs], gi) => {
+      // 상황별 묶음은 접어 둔다. 연 상태는 기억하고, 처음엔 첫 묶음만 연다
+      const key = `${tab}:${title}`;
+      const open = key in opened ? opened[key] : gi === 0;
+      const d = cs.filter((c) => done.has(c.id)).length;
+      return `<details class="sit-group" data-open-key="${esc(key)}" ${open ? 'open' : ''}>
+      <summary><h2 class="sit">${esc(title)}</h2><span class="sit-n">완료 ${d}/${cs.length}</span></summary>
+      <ul class="list">
       ${cs.map((c) => `<li class="cat-${c.cat}"><a href="#/c/${c.id}">
         <span class="p" lang="en">${slot(c.pattern)}</span>
         <span class="k">${esc(c.ko)}</span>
         ${done.has(c.id) ? '<span class="done">완료</span>' : ''}
       </a>${star(c.id, fav.has(c.id))}</li>`).join('')}
-    </ul>`).join('')}`;
+      </ul></details>`;
+    }).join('')}`;
+  $('#app').querySelectorAll('[data-open-key]').forEach((d) => d.ontoggle = () => {
+    save('opened', { ...saved('opened', {}), [d.dataset.openKey]: d.open });
+  });
   const themeBtn = $('#theme');
   const showTheme = (t) => {
     const [icon, name] = { system: ['🌓', '기기 설정'], light: ['☀️', '라이트'], dark: ['🌙', '다크'] }[t];
@@ -301,15 +312,15 @@ function card(c) {
       <p class="when">${esc(c.when)}</p>
       ${c.tip ? `<p class="tip">${esc(c.tip)}</p>` : ''}
     </section>
-    <section class="step">
-      <h2><span>1</span>귀로 먼저 맞혀보기</h2>
+    <details class="step" id="s1" open>
+      <summary><h2><span>1</span>귀로 먼저 맞혀보기</h2></summary>
       <p class="hint">조금 빠르게 들려줘요. 무슨 뜻인지 먼저 떠올린 뒤 확인하세요.</p>
       <div class="row"><button class="btn" id="fast">빠르게 듣기</button><button class="btn ghost" id="reveal">뜻 확인하고 계속</button></div>
       <div id="answer" hidden><p class="en" lang="en">${esc(first.en)}</p><p class="ko-s">${esc(first.ko)}</p></div>
-    </section>
+    </details>
     <div id="rest" hidden>
-      <section class="step">
-        <h2><span>2</span>단어 바꿔 말하기</h2>
+      <details class="step" open>
+        <summary><h2><span>2</span>단어 바꿔 말하기</h2></summary>
         ${c.variants.map((v, i) => `<div class="variant">
           <p class="en" lang="en">${esc(v.en)}</p><p class="ko-s">${esc(v.ko)}</p>
           <div class="row">
@@ -328,9 +339,9 @@ function card(c) {
             <p class="hint small">블루투스 이어폰 마이크는 소리가 먹먹하게 녹음돼요. 비교할 때는 폰 마이크가 더 정확해요.</p>
           </details>
         </div>`).join('')}
-      </section>
-      <section class="step" id="talk">
-        <h2><span>3</span>대화에 써보기</h2>
+      </details>
+      <details class="step" id="talk" open>
+        <summary><h2><span>3</span>대화에 써보기</h2></summary>
         <p class="hint">${TUTOR}의 말을 듣고, 이 패턴으로 대답해보세요.</p>
         <div class="tutor">
           <p class="who">${TUTOR}</p>
@@ -340,7 +351,7 @@ function card(c) {
         <button class="btn mic" id="rp-mic">대답하기</button>
         <div class="out" id="rp-out" aria-live="polite"></div>
         <details><summary>예시 답변 보기</summary><p class="en" lang="en">${esc(c.roleplay.answer)}</p></details>
-      </section>
+      </details>
       <button class="btn finish" id="finish">다 했어요, 다음 표현</button>
     </div>
     ${c.mine ? '<button class="btn ghost danger" id="drop">내 카드 삭제</button>' : ''}`;
@@ -351,7 +362,11 @@ function card(c) {
   };
 
   $('#fast').onclick = () => say(first.en, 1.2);
-  $('#reveal').onclick = () => { $('#answer').hidden = false; $('#rest').hidden = false; $('#reveal').remove(); };
+  $('#reveal').onclick = () => {
+    $('#answer').hidden = false; $('#rest').hidden = false; $('#reveal').remove();
+    $('#s1').open = false; // 뜻을 확인했으면 1단계는 접고 2단계로
+    $('#rest').scrollIntoView({ block: 'start' });
+  };
   $('#app').querySelectorAll('[data-say]').forEach((b) => b.onclick = () => say(c.variants[b.dataset.say].en));
   $('#app').querySelectorAll('[data-slow]').forEach((b) => b.onclick = () => say(c.variants[b.dataset.slow].en, 0.7));
   $('#app').querySelectorAll('[data-mic]').forEach((b) => {

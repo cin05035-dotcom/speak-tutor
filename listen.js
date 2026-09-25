@@ -47,6 +47,7 @@ function stopListen() {
 }
 
 function listen() {
+  const first = !saved('listen', null); // 처음 쓸 때만 설정을 펼쳐 둔다
   const opt = { src: 'learned', gap: 3, again: false, shuffle: true, ...saved('listen', {}) };
   const sources = listenSources();
   if (!sources.find(([k, , items]) => k === opt.src && items.length)) opt.src = saved('tab', 'daily') in CATS ? saved('tab', 'daily') : 'daily';
@@ -56,15 +57,6 @@ function listen() {
     <header class="bar"><a href="#" class="back">← 목록</a></header>
     <h1 class="page-h">출퇴근 듣기</h1>
     <p class="hint">한국어를 듣고, 멈춘 사이에 영어로 말해본 뒤 정답을 들어요. 화면을 보지 않아도 돼요.</p>
-    <section class="step">
-      <label class="label" for="src">들을 문장</label>
-      <select id="src" class="select">${sources.map(([k, name, items]) =>
-        `<option value="${k}" ${k === opt.src ? 'selected' : ''} ${items.length ? '' : 'disabled'}>${name} (${items.length}문장)</option>`).join('')}</select>
-      <label class="label" for="gap">생각할 시간</label>
-      <select id="gap" class="select">${[2, 3, 5].map((s) => `<option value="${s}" ${s === opt.gap ? 'selected' : ''}>${s}초</option>`).join('')}</select>
-      <label class="check"><input type="checkbox" id="again" ${opt.again ? 'checked' : ''}> 영어를 한 번 더 천천히</label>
-      <label class="check"><input type="checkbox" id="shuffle" ${opt.shuffle ? 'checked' : ''}> 섞어서 듣기</label>
-    </section>
     <section class="step now" aria-live="polite">
       <p class="eyebrow" id="pos"></p>
       <p class="q" id="ko">재생을 누르면 시작해요.</p>
@@ -75,12 +67,27 @@ function listen() {
         <button class="btn ghost" id="next" aria-label="다음 문장">다음 <span aria-hidden="true">▶</span></button>
       </div>
     </section>
+    <details class="step" ${first ? 'open' : ''}>
+      <summary><h2>설정 <span class="sum" id="opt-sum"></span></h2></summary>
+      <label class="label" for="src">들을 문장</label>
+      <select id="src" class="select">${sources.map(([k, name, items]) =>
+        `<option value="${k}" ${k === opt.src ? 'selected' : ''} ${items.length ? '' : 'disabled'}>${name} (${items.length}문장)</option>`).join('')}</select>
+      <label class="label" for="gap">생각할 시간</label>
+      <select id="gap" class="select">${[2, 3, 5].map((s) => `<option value="${s}" ${s === opt.gap ? 'selected' : ''}>${s}초</option>`).join('')}</select>
+      <label class="check"><input type="checkbox" id="again" ${opt.again ? 'checked' : ''}> 영어를 한 번 더 천천히</label>
+      <label class="check"><input type="checkbox" id="shuffle" ${opt.shuffle ? 'checked' : ''}> 섞어서 듣기</label>
+    </details>
     <p class="hint small">재생하는 동안 화면이 꺼지지 않게 해 둘게요. 다른 앱으로 넘어가면 멈출 수 있어요.
       ${voices['ko-KR'] ? '' : '<br><b>이 기기에서 한국어 음성을 찾지 못했어요.</b> 한국어는 화면에만 나오고 소리로는 안 들릴 수 있어요.'}</p>`;
 
   const read = () => {
     Object.assign(opt, { src: $('#src').value, gap: Number($('#gap').value), again: $('#again').checked, shuffle: $('#shuffle').checked });
     save('listen', opt);
+    showOpt();
+  };
+  const showOpt = () => {
+    const name = (sources.find(([k]) => k === opt.src) || [, ''])[1];
+    $('#opt-sum').textContent = `· ${name} · ${opt.gap}초${opt.again ? ' · 한 번 더' : ''}${opt.shuffle ? ' · 섞기' : ''}`;
   };
   const load = () => {
     const items = (sources.find(([k]) => k === opt.src) || [, , []])[2];
@@ -129,4 +136,5 @@ function listen() {
   }
   load();
   show(false);
+  showOpt();
 }

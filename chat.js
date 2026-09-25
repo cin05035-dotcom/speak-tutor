@@ -54,7 +54,7 @@ function startChat(card, box) {
   const history = [{ speaker: TUTOR, text: card.roleplay.tutor }];
   let n = 0;
   box.innerHTML = `
-    <h2><span>3</span>대화에 써보기</h2>
+    <summary><h2><span>3</span>대화에 써보기</h2></summary>
     <p class="hint">${TUTOR}와 ${CHAT_TURNS}번 주고받아요. ${TUTOR}의 말은 소리로 먼저 들어보고, 안 들리면 자막을 여세요. 이 카드 표현을 한 번은 써보세요.</p>
     <div class="chat" id="chat">${miaBubble(card.roleplay.tutor, card.roleplay.ko)}</div>
     <div class="row" id="talk-ctl">
