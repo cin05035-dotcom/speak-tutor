@@ -5,11 +5,18 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const { usesPattern } = require('./judge.js');
 
+// index.html이 불러오는 카드 파일을 그대로 따라 읽는다 (파일을 빠뜨리면 여기서 드러난다)
+const html = fs.readFileSync(__dirname + '/index.html', 'utf8');
+const files = [...html.matchAll(/src="(cards[^"?]*\.js)/g)].map((m) => m[1]);
 const ctx = {};
-vm.runInNewContext(fs.readFileSync(__dirname + '/cards.js', 'utf8') + ';this.CARDS=CARDS;this.SITS=SITS;', ctx);
+vm.runInNewContext(files.map((f) => fs.readFileSync(__dirname + '/' + f, 'utf8')).join(';\n') + ';this.CARDS=CARDS;this.SITS=SITS;', ctx);
 const { CARDS, SITS } = ctx;
 const RULES = fs.readFileSync(__dirname + '/app.js', 'utf8').match(/const RULES = \{([\s\S]*?)\n\};/)[1]
   .match(/^\s+(\w+):/gm).map((s) => s.trim().slice(0, -1));
+
+test('카드 파일을 모두 불러온다', () => {
+  assert.deepStrictEqual(files.slice(1).sort(), fs.readdirSync(__dirname + '/cards').map((f) => 'cards/' + f).sort());
+});
 
 test('id가 겹치지 않는다', () => {
   assert.strictEqual(new Set(CARDS.map((c) => c.id)).size, CARDS.length);
