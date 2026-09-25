@@ -7,6 +7,7 @@ const TUTOR = 'Mia';
 
 const saved = (k, fallback) => { try { return JSON.parse(localStorage.getItem(k)) ?? fallback; } catch { return fallback; } };
 const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* 저장 못 해도 학습은 계속 */ } };
+for (const c of saved('mycards', [])) addMine(c); // "이 말 영어로?"로 만든 내 카드 (ask.js)
 
 // ── 튜터 음성 (기기 내장 TTS) ──
 const voices = {};
@@ -210,7 +211,7 @@ const RULES = {
   glide: ['모음 사이 이음', '모음으로 끝나고 모음으로 시작하면 사이에 가벼운 y나 w가 끼어들어요. okay if → o-kay-yif'],
 };
 function linkBlock(l) {
-  if (!l) return '<p class="hint small">이 문장의 연음 표시는 아직 준비 중이에요.</p>';
+  if (!l) return '<p class="hint small">이 문장은 연음 표시가 없어요. 튜터 음성을 듣고 녹음해서 비교해 보세요.</p>';
   const marked = esc(l.text).replace(/‿/g, '<span class="tie">‿</span>').replace(/\(t\)/g, '<span class="hold">(t)</span>');
   return `<p class="link" lang="en">${marked}</p><p class="sound">[${esc(l.sound)}]</p>
     ${l.rules.length ? `<ul class="rules">${l.rules.map((r) => `<li><b>${RULES[r][0]}</b> ${RULES[r][1]}</li>`).join('')}</ul>` : ''}
@@ -383,7 +384,13 @@ function card(c) {
         <details><summary>예시 답변 보기</summary><p class="en" lang="en">${esc(c.roleplay.answer)}</p></details>
       </section>
       <button class="btn finish" id="finish">다 했어요, 다음 표현</button>
-    </div>`;
+    </div>
+    ${c.mine ? '<button class="btn ghost danger" id="drop">내 카드 삭제</button>' : ''}`;
+  if (c.mine) $('#drop').onclick = () => {
+    if (!confirm('이 카드를 지울까요? 복습 기록과 즐겨찾기도 같이 지워져요.')) return;
+    removeMine(c.id);
+    location.hash = '';
+  };
 
   $('#fast').onclick = () => say(first.en, 1.2);
   $('#reveal').onclick = () => { $('#answer').hidden = false; $('#rest').hidden = false; $('#reveal').remove(); };
@@ -443,6 +450,7 @@ function route() {
   else if (location.hash === '#/settings') settings();
   else if (location.hash === '#/review') review();
   else if (location.hash === '#/listen') listen();
+  else if (location.hash === '#/ask') ask();
   else home();
   window.scrollTo(0, 0);
 }

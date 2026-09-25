@@ -168,10 +168,16 @@ a { color: inherit; }
 .step > .label:first-child { margin-top: 0; }
 /* 작은 머리글 (정답, 몇 번째) */
 .eyebrow { font-size: 0.8rem; font-weight: 700; color: var(--muted); margin: 14px 0 0; }
-#key {
+#key, .field {
   width: 100%; min-height: 48px; padding: 0 12px; margin-top: 4px; border-radius: 12px;
   border: 1.5px solid var(--line-strong); background: var(--bg); color: var(--ink); font: 500 16px var(--mono);
 }
+/* 이 말 영어로? */
+.field { font: 16px/1.5 var(--ko); padding: 10px 12px; resize: vertical; }
+.cat-mine { --c: var(--ink); }
+#result .row { align-items: center; flex-wrap: nowrap; }
+#result .row .en { flex: 1; min-width: 0; margin: 0; }
+.btn.danger { width: 100%; margin-top: 12px; color: var(--bad); }
 .small { font-size: 0.82rem; }
 .coach { border-left: 4px solid var(--ink); padding: 2px 0 2px 12px; margin-top: 14px; }
 .coach .en { margin-top: 6px; }

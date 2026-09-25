@@ -57,6 +57,7 @@ function todayPanel() {
     <div class="row">
       ${dueN ? `<a class="btn go" href="#/review">복습 시작 (${dueN}문장)</a>` : ''}
       <a class="btn ghost go" href="#/listen">🎧 출퇴근 듣기</a>
+      <a class="btn ghost go" href="#/ask">💬 이 말 영어로?</a>
     </div>
     ${Object.keys(srs).length ? '' : '<p class="hint small">카드를 끝내면 그 문장들이 다음 날부터 복습에 나와요. 복습은 한국어를 보고 영어로 말하는 연습이에요.</p>'}
     <ul class="picks">${picks.map((c) => `<li class="cat-${c.cat}"><a href="#/c/${c.id}">
