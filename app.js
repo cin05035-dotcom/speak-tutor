@@ -65,10 +65,12 @@ const ERR = {
   'audio-capture': '마이크를 찾지 못했어요. 이어폰 연결을 확인하세요.',
 };
 let rec = null;
+let speechStartedAt = 0; // 말하기 시작한 순간 (복습의 "대답까지 걸린 시간"용)
 function hear() {
   return new Promise((resolve, reject) => {
     rec = new SR();
     rec.lang = 'en-US'; rec.interimResults = false; rec.maxAlternatives = 1;
+    rec.onspeechstart = () => { speechStartedAt = performance.now(); };
     let got = '';
     rec.onresult = (e) => { got = e.results[0][0].transcript; };
     rec.onerror = (e) => reject(e.error);

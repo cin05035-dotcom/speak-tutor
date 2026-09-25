@@ -179,6 +179,11 @@ a { color: inherit; }
 #result .row .en { flex: 1; min-width: 0; margin: 0; }
 .btn.danger { width: 100%; margin-top: 12px; color: var(--bad); }
 .small { font-size: 0.82rem; }
+/* 복습: 말하기까지 걸린 시간 */
+.time { font-size: 0.88rem; font-weight: 700; color: var(--muted); margin: 6px 0 0; }
+.time.ok { color: var(--ok); }
+.time.bad { color: var(--bad); }
+
 /* 대화 이어가기: Mia는 왼쪽, 나는 오른쪽 */
 .chat { display: grid; gap: 10px; margin: 12px 0; }
 .bubble { border-radius: 14px; padding: 10px 14px; max-width: 88%; }
