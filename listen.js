@@ -66,13 +66,13 @@ function listen() {
       <label class="check"><input type="checkbox" id="shuffle" ${opt.shuffle ? 'checked' : ''}> 섞어서 듣기</label>
     </section>
     <section class="step now" aria-live="polite">
-      <p class="label" id="pos"></p>
+      <p class="eyebrow" id="pos"></p>
       <p class="q" id="ko">재생을 누르면 시작해요.</p>
-      <p class="en" id="en"></p>
+      <p class="en" lang="en" id="en"></p>
       <div class="row player">
-        <button class="btn ghost" id="prev" aria-label="이전 문장">◀ 이전</button>
-        <button class="btn" id="play">▶ 재생</button>
-        <button class="btn ghost" id="next" aria-label="다음 문장">다음 ▶</button>
+        <button class="btn ghost" id="prev" aria-label="이전 문장"><span aria-hidden="true">◀</span> 이전</button>
+        <button class="btn" id="play"></button>
+        <button class="btn ghost" id="next" aria-label="다음 문장">다음 <span aria-hidden="true">▶</span></button>
       </div>
     </section>
     <p class="hint small">재생하는 동안 화면이 꺼지지 않게 해 둘게요. 다른 앱으로 넘어가면 멈출 수 있어요.
@@ -92,7 +92,7 @@ function listen() {
     $('#pos').textContent = it ? `${lp.i + 1} / ${lp.list.length}` : '';
     $('#ko').textContent = it ? it.v.ko : '끝까지 들었어요. 다시 들으려면 재생을 누르세요.';
     $('#en').textContent = it && revealEn ? it.v.en : '';
-    $('#play').textContent = lp.playing ? '❚❚ 멈춤' : '▶ 재생';
+    $('#play').innerHTML = lp.playing ? '<span aria-hidden="true">❚❚</span> 멈춤' : '<span aria-hidden="true">▶</span> 재생';
   };
 
   const step = (tok) => {

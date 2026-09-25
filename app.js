@@ -161,7 +161,7 @@ async function showCoach(card, heard, out) {
     const r = await coach(card, heard);
     const [cls, label] = VERDICT[r.verdict] || VERDICT.ok;
     html = `<p class="who">${TUTOR}의 코멘트</p><p class="verdict ${cls}">${label}</p>
-      ${r.verdict === 'natural' ? '' : `<p class="en">${esc(r.better)}</p>`}
+      ${r.verdict === 'natural' ? '' : `<p class="en" lang="en">${esc(r.better)}</p>`}
       <p class="why">${esc(r.why)}</p>`;
   } catch (msg) {
     html = `<p class="note">${esc(typeof msg === 'string' ? msg : 'AI 교정 결과를 읽지 못했어요. 다시 대답해보세요.')}</p>`;
@@ -169,7 +169,7 @@ async function showCoach(card, heard, out) {
   if (run === coachRun) box.innerHTML = html;
 }
 
-const caption = (heard) => `<div class="cc"><span>상대에게 들린 말</span><p>${esc(heard)}</p></div>`;
+const caption = (heard) => `<div class="cc"><span>상대에게 들린 말</span><p lang="en">${esc(heard)}</p></div>`;
 
 const words = (ws) => ws.map((w) => `<b>${esc(w)}</b>`).join(', ');
 
@@ -212,7 +212,7 @@ const RULES = {
 function linkBlock(l) {
   if (!l) return '<p class="hint small">이 문장의 연음 표시는 아직 준비 중이에요.</p>';
   const marked = esc(l.text).replace(/‿/g, '<span class="tie">‿</span>').replace(/\(t\)/g, '<span class="hold">(t)</span>');
-  return `<p class="link">${marked}</p><p class="sound">[${esc(l.sound)}]</p>
+  return `<p class="link" lang="en">${marked}</p><p class="sound">[${esc(l.sound)}]</p>
     ${l.rules.length ? `<ul class="rules">${l.rules.map((r) => `<li><b>${RULES[r][0]}</b> ${RULES[r][1]}</li>`).join('')}</ul>` : ''}
     <p class="hint small">‿는 이어 읽기, (t)는 멈추기만, 대문자는 강하게 읽는 부분이에요. 규칙을 적용해 만든 표시라 원어민 녹음으로 확인한 건 아니에요.</p>`;
 }
@@ -235,8 +235,10 @@ function toggleFav(id) {
   save('fav', [...f]);
   return f.has(id);
 }
-const star = (id, on) =>
-  `<button class="star" data-fav="${id}" aria-pressed="${on}" aria-label="즐겨찾기">${on ? '★' : '☆'}</button>`;
+const star = (id, on) => {
+  const c = CARDS.find((x) => x.id === id);
+  return `<button class="star" data-fav="${id}" aria-pressed="${on}" aria-label="즐겨찾기: ${esc(c.pattern.replace('___', '~'))}">${on ? '★' : '☆'}</button>`;
+};
 
 function home() {
   const done = new Set(saved('done', []));
@@ -256,7 +258,7 @@ function home() {
     <header class="top">
       <a class="set" href="#/settings">AI 교정 ${saved('gemini', '') ? '켜짐' : '꺼짐'}</a>
       <h1>말해보는 영어</h1>
-      <p>표현 하나를 골라 소리 내어 말해보세요. 상대가 알아들었는지 바로 알려줘요.</p>
+      <p>매일 오늘의 학습부터 해보세요. 새 표현은 소리 내어 익히고, 익힌 표현은 다음 날부터 한국어만 보고 꺼내 말해요.</p>
     </header>
     ${todayPanel()}
     <nav class="tabs" aria-label="분류">
@@ -267,9 +269,9 @@ function home() {
     ${groups.map(([title, cs]) => `<h2 class="sit">${esc(title)}</h2>
     <ul class="list">
       ${cs.map((c) => `<li class="cat-${c.cat}"><a href="#/c/${c.id}">
-        <span class="p">${slot(c.pattern)}</span>
+        <span class="p" lang="en">${slot(c.pattern)}</span>
         <span class="k">${esc(c.ko)}</span>
-        ${done.has(c.id) ? '<span class="done" aria-label="완료">완료</span>' : ''}
+        ${done.has(c.id) ? '<span class="done">완료</span>' : ''}
       </a>${star(c.id, fav.has(c.id))}</li>`).join('')}
     </ul>`).join('')}`;
   $('#app').querySelectorAll('[data-tab]').forEach((b) => b.onclick = () => { save('tab', b.dataset.tab); home(); });
@@ -310,7 +312,11 @@ function settings() {
     } catch (e) { msg.textContent = e; }
   };
   const del = $('#del');
-  if (del) del.onclick = () => { try { localStorage.removeItem('gemini'); } catch { /* 무시 */ } settings(); };
+  if (del) del.onclick = () => {
+    if (!confirm('저장된 API 키를 지울까요? 다시 쓰려면 키를 다시 붙여넣어야 해요.')) return;
+    try { localStorage.removeItem('gemini'); } catch { /* 무시 */ }
+    settings();
+  };
 }
 
 function card(c) {
@@ -320,7 +326,7 @@ function card(c) {
       <span class="bar-r">${star(c.id, saved('fav', []).includes(c.id))}<span class="chip cat-${c.cat}">${CATS[c.cat]} · ${esc(c.sit || '기타')}</span></span></header>
     <section class="intro cat-${c.cat}">
       <p class="tone">${TONE[c.tone]}</p>
-      <h1 class="pattern">${slot(c.pattern)}</h1>
+      <h1 class="pattern" lang="en">${slot(c.pattern)}</h1>
       <p class="ko">${esc(c.ko)}</p>
       <p class="when">${esc(c.when)}</p>
       ${c.tip ? `<p class="tip">${esc(c.tip)}</p>` : ''}
@@ -329,13 +335,13 @@ function card(c) {
       <h2><span>1</span>귀로 먼저 맞혀보기</h2>
       <p class="hint">조금 빠르게 들려줘요. 무슨 뜻인지 먼저 떠올린 뒤 확인하세요.</p>
       <div class="row"><button class="btn" id="fast">빠르게 듣기</button><button class="btn ghost" id="reveal">뜻 확인하고 계속</button></div>
-      <div id="answer" hidden><p class="en">${esc(first.en)}</p><p class="ko-s">${esc(first.ko)}</p></div>
+      <div id="answer" hidden><p class="en" lang="en">${esc(first.en)}</p><p class="ko-s">${esc(first.ko)}</p></div>
     </section>
     <div id="rest" hidden>
       <section class="step">
         <h2><span>2</span>단어 바꿔 말하기</h2>
         ${c.variants.map((v, i) => `<div class="variant">
-          <p class="en">${esc(v.en)}</p><p class="ko-s">${esc(v.ko)}</p>
+          <p class="en" lang="en">${esc(v.en)}</p><p class="ko-s">${esc(v.ko)}</p>
           <div class="row">
             <button class="btn ghost" data-say="${i}">듣기</button>
             <button class="btn ghost" data-slow="${i}">천천히</button>
@@ -359,11 +365,11 @@ function card(c) {
         <div class="tutor">
           <p class="who">${TUTOR}</p>
           <div class="row"><button class="btn ghost" id="rp-say">듣기</button></div>
-          <details><summary>자막 보기</summary><p class="en">${esc(c.roleplay.tutor)}</p><p class="ko-s">${esc(c.roleplay.ko)}</p></details>
+          <details><summary>자막 보기</summary><p class="en" lang="en">${esc(c.roleplay.tutor)}</p><p class="ko-s">${esc(c.roleplay.ko)}</p></details>
         </div>
         <button class="btn mic" id="rp-mic">대답하기</button>
         <div class="out" id="rp-out" aria-live="polite"></div>
-        <details><summary>예시 답변 보기</summary><p class="en">${esc(c.roleplay.answer)}</p></details>
+        <details><summary>예시 답변 보기</summary><p class="en" lang="en">${esc(c.roleplay.answer)}</p></details>
       </section>
       <button class="btn finish" id="finish">다 했어요, 다음 표현</button>
     </div>`;

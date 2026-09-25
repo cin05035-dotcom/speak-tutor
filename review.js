@@ -60,7 +60,7 @@ function todayPanel() {
     </div>
     ${Object.keys(srs).length ? '' : '<p class="hint small">카드를 끝내면 그 문장들이 다음 날부터 복습에 나와요. 복습은 한국어를 보고 영어로 말하는 연습이에요.</p>'}
     <ul class="picks">${picks.map((c) => `<li class="cat-${c.cat}"><a href="#/c/${c.id}">
-      <span class="p">${slot(c.pattern)}</span>${done.has(c.id) ? '<span class="done">완료</span>' : ''}</a></li>`).join('')}</ul>
+      <span class="p" lang="en">${slot(c.pattern)}</span>${done.has(c.id) ? '<span class="done">완료</span>' : ''}</a></li>`).join('')}</ul>
   </section>`;
 }
 
@@ -77,16 +77,17 @@ function review() {
   const { c, v } = fromKey(item.k);
   $('#app').innerHTML = `
     <header class="bar"><a href="#" class="back">← 목록</a><span class="chip cat-${c.cat}">복습 ${rv.i + 1} / ${rv.queue.length}</span></header>
+    <h1 class="page-h">복습</h1>
     <section class="step">
       <h2>한국어를 보고 영어로 말해보세요</h2>
       ${item.retry ? '<p class="hint small">아까 틀린 문장이에요. 한 번 더 연습해요.</p>' : ''}
       <p class="q">${esc(v.ko)}</p>
-      <details><summary>힌트: 패턴 보기</summary><p class="en">${slot(c.pattern)}</p></details>
+      <details><summary>힌트: 패턴 보기</summary><p class="en" lang="en">${slot(c.pattern)}</p></details>
       <div class="row"><button class="btn" id="speak">영어로 말하기</button><button class="btn ghost" id="skip">모르겠어요</button></div>
       <div class="out" id="out" aria-live="polite"></div>
       <div id="after" hidden>
-        <p class="label">정답</p>
-        <p class="en">${esc(v.en)}</p>
+        <p class="eyebrow">정답</p>
+        <p class="en" lang="en">${esc(v.en)}</p>
         <div class="row">
           <button class="btn ghost" id="listen">정답 듣기</button>
           <button class="btn ghost" id="override" hidden>맞게 말했는데 인식이 틀렸어요</button>
@@ -133,6 +134,7 @@ function reviewDone() {
   rv = null;
   $('#app').innerHTML = `
     <header class="bar"><a href="#" class="back">← 목록</a></header>
+    <h1 class="page-h">복습</h1>
     <section class="step">
       <h2>${r.total ? '오늘 복습 끝!' : '오늘 복습할 문장이 없어요'}</h2>
       <p>${r.total
